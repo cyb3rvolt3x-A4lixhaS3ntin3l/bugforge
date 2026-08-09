@@ -32,7 +32,7 @@ class ToolProfile:
     requires_web: bool = True  # only run on web assets
 
 
-# ── Profile implementations ──
+# ─── Profile implementations ───
 
 def _subfinder_cmd(target, opts):
     return ["subfinder", "-d", target, "-silent", "-json", "-o", "-"]
@@ -195,7 +195,7 @@ def _nmap_parse(stdout):
     return out
 
 
-# ── Registry ──
+# ─── Registry ───
 
 PROFILES: Dict[str, ToolProfile] = {}
 

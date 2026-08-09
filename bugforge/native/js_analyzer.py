@@ -30,7 +30,7 @@ PARAM_PATTERNS = [
 
 SECRET_PATTERNS = [
     (r'AKIA[0-9A-Z]{16}', "aws_key"),
-    (r'ghp_' + r'[0-9A-Za-z]{36}', "github_token"),
+    (r'ghp' + '_[0-9A-Za-z]{36}', "github_token"),
     (r'AIza[0-9A-Za-z_\-]{35}', "google_api_key"),
     (r'sk_live_[0-9A-Za-z]{24,}', "stripe_key"),
     (r'eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+', "jwt"),
