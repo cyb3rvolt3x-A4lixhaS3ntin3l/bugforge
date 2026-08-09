@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BugForge v2.0 — Bug Bounty Orchestration Platform</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --red: #f85149;
+            --yellow: #d29922;
+            --purple: #bc8cff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh; padding: 0;
+        }
+        .header {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 16px 24px; display: flex; align-items: center; gap: 16px;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+        .logo span { color: var(--text); }
+        .version { font-size: 0.75rem; color: var(--text-muted); }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+        /* Target input */
+        .run-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 24px; margin-bottom: 24px;
+        }
+        .run-card h2 { font-size: 1.1rem; margin-bottom: 16px; }
+        .input-group { display: flex; gap: 12px; margin-bottom: 16px; }
+        .input-group input[type="text"] {
+            flex: 1; padding: 12px 16px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); font-size: 1rem;
+        }
+        .input-group input:focus { outline: none; border-color: var(--accent); }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 8px;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+        .btn:hover { opacity: 0.85; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Scope textarea */
+        .scope-input {
+            width: 100%; padding: 12px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); font-family: monospace; font-size: 0.85rem;
+            min-height: 80px; resize: vertical; margin-bottom: 12px;
+        }
+
+        /* Stage toggles */
+        .stages { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+        .stage-chip {
+            padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;
+            border: 1px solid var(--border); cursor: pointer; user-select: none;
+            transition: all 0.2s;
+        }
+        .stage-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .stage-chip:hover { border-color: var(--accent); }
+
+        /* Progress */
+        .progress-section { margin-bottom: 24px; }
+        .progress-bar {
+            height: 4px; background: var(--border); border-radius: 2px;
+            overflow: hidden; margin-bottom: 12px;
+        }
+        .progress-fill {
+            height: 100%; background: var(--green); width: 0%;
+            transition: width 0.3s;
+        }
+        .stage-list { display: flex; flex-direction: column; gap: 8px; }
+        .stage-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px; background: var(--surface);
+            border-radius: 8px; border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        .stage-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+        .stage-icon.pending { background: var(--border); }
+        .stage-icon.running { background: var(--yellow); animation: pulse 1s infinite; }
+        .stage-icon.completed { background: var(--green); }
+        .stage-icon.failed { background: var(--red); }
+        .stage-icon.skipped { background: var(--text-muted); }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .stage-name { flex: 1; }
+        .stage-status { color: var(--text-muted); font-size: 0.8rem; }
+        .stage-findings { color: var(--accent); font-weight: 600; font-size: 0.8rem; }
+
+        /* Results */
+        .results-section { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .result-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px;
+        }
+        .result-card h3 { font-size: 1rem; margin-bottom: 12px; color: var(--accent); }
+        .finding {
+            padding: 8px 12px; background: var(--bg); border-radius: 6px;
+            margin-bottom: 6px; font-size: 0.85rem; font-family: monospace;
+            border-left: 3px solid var(--border);
+        }
+        .finding.critical { border-left-color: var(--red); }
+        .finding.high { border-left-color: var(--yellow); }
+        .finding.medium { border-left-color: var(--accent); }
+        .finding.low { border-left-color: var(--green); }
+
+        /* Tools panel */
+        .tools-panel {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; margin-bottom: 24px;
+        }
+        .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+        .tool-card {
+            padding: 12px 16px; background: var(--bg); border-radius: 8px;
+            border: 1px solid var(--border); font-size: 0.85rem;
+        }
+        .tool-name { font-weight: 600; }
+        .tool-status { font-size: 0.75rem; margin-top: 4px; }
+        .tool-status.installed { color: var(--green); }
+        .tool-status.missing { color: var(--yellow); }
+        .tool-desc { color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; }
+        .install-btn {
+            margin-top: 8px; padding: 4px 12px; font-size: 0.75rem;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; color: var(--accent); cursor: pointer;
+        }
+
+        .hidden { display: none; }
+        .empty-state { text-align: center; padding: 48px; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🐛 Bug<span>Forge</span></div>
+        <div class="version">v2.0.0 — Orchestration Platform</div>
+    </div>
+
+    <div class="container">
+        <!-- Run Pipeline -->
+        <div class="run-card">
+            <h2>🎯 Launch Pipeline</h2>
+            <div class="input-group">
+                <input type="text" id="target" placeholder="Enter target domain (e.g. example.com)">
+                <button class="btn btn-primary" id="runBtn" onclick="runPipeline()">🚀 Run Pipeline</button>
+            </div>
+            <details>
+                <summary style="cursor:pointer; color:var(--text-muted); font-size:0.85rem; margin-bottom:12px;">
+                    Scope Brief (paste your Bugcrowd/HackerOne brief)
+                </summary>
+                <textarea class="scope-input" id="brief" placeholder="in_scope:&#10;  - *.example.com&#10;out_of_scope:&#10;  - *.staging.example.com"></textarea>
+            </details>
+            <div class="stages" id="stages">
+                <div class="stage-chip active" data-stage="recon">Recon</div>
+                <div class="stage-chip active" data-stage="probe">Probe</div>
+                <div class="stage-chip active" data-stage="fingerprint">Fingerprint</div>
+                <div class="stage-chip active" data-stage="discovery">Discovery</div>
+                <div class="stage-chip active" data-stage="vuln_scan">Vuln Scan</div>
+                <div class="stage-chip active" data-stage="xss">XSS</div>
+                <div class="stage-chip active" data-stage="sqli">SQLi</div>
+                <div class="stage-chip active" data-stage="secret">Secrets</div>
+                <div class="stage-chip active" data-stage="cors">CORS</div>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-section hidden" id="progressSection">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="stage-list" id="stageList"></div>
+        </div>
+
+        <!-- Tools Status -->
+        <div class="tools-panel">
+            <h2>🛠️ Tool Arsenal <button class="btn btn-secondary" style="float:right; padding:4px 12px; font-size:0.8rem;" onclick="loadTools()">Refresh</button></h2>
+            <div class="tools-grid" id="toolsGrid">
+                <div class="empty-state">Click Refresh to load tool status</div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results-section hidden" id="resultsSection">
+            <div class="result-card" id="findingsCard">
+                <h3>📋 Findings</h3>
+                <div id="findingsList"><div class="empty-state">No findings yet</div></div>
+            </div>
+            <div class="result-card" id="summaryCard">
+                <h3>📊 Summary</h3>
+                <div id="summaryContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+        let currentRunId = null;
+        let ws = null;
+        let totalStages = 9;
+
+        // Stage chip toggles
+        document.querySelectorAll('.stage-chip').forEach(chip => {
+            chip.addEventListener('click', () => chip.classList.toggle('active'));
+        });
+
+        async function runPipeline() {
+            const target = document.getElementById('target').value.trim();
+            if (!target) { alert('Enter a target'); return; }
+
+            const brief = document.getElementById('brief').value.trim();
+            const skipStages = [];
+            document.querySelectorAll('.stage-chip:not(.active)').forEach(c => {
+                skipStages.push(c.dataset.stage);
+            });
+
+            const body = { target, auto_install: true };
+            if (brief) body.brief = brief;
+            if (skipStages.length) body.skip_stages = skipStages;
+
+            document.getElementById('runBtn').disabled = true;
+            document.getElementById('runBtn').textContent = '⏳ Running...';
+
+            try {
+                const res = await fetch(`${API}/api/pipeline/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.detail || 'Failed to start pipeline');
+                    document.getElementById('runBtn').disabled = false;
+                    document.getElementById('runBtn').textContent = '🚀 Run Pipeline';
+                    return;
+                }
+                const data = await res.json();
+                currentRunId = data.run_id;
+
+                // Show progress section
+                document.getElementById('progressSection').classList.remove('hidden');
+                document.getElementById('stageList').innerHTML = '';
+                document.getElementById('progressFill').style.width = '0%';
+
+                // Connect WebSocket
+                connectWebSocket(data.run_id);
+            } catch (e) {
+                alert('Error: ' + e);
+                document.getElementById('runBtn').disabled = false;
+                document.getElementById('runBtn').textContent = '🚀 Run Pipeline';
+            }
+        }
+
+        function connectWebSocket(runId) {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${location.host}/ws/pipeline/${runId}`);
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'progress') {
+                    updateStage(data);
+                } else if (data.type === 'completed') {
+                    onComplete(data);
+                } else if (data.type === 'error') {
+                    alert('Pipeline error: ' + data.message);
+                    resetButton();
+                }
+            };
+
+            ws.onclose = () => { resetButton(); };
+        }
+
+        function updateStage(data) {
+            let stageList = document.getElementById('stageList');
+            let existing = document.getElementById(`stage-${data.stage}`);
+
+            if (!existing) {
+                existing = document.createElement('div');
+                existing.className = 'stage-item';
+                existing.id = `stage-${data.stage}`;
+                existing.innerHTML = `
+                    <div class="stage-icon running" id="icon-${data.stage}">⟳</div>
+                    <div class="stage-name">${data.stage}</div>
+                    <div class="stage-status" id="status-${data.stage}">${data.message}</div>
+                    <div class="stage-findings" id="findings-${data.stage}"></div>
+                `;
+                stageList.appendChild(existing);
+            }
+
+            document.getElementById(`status-${data.stage}`).textContent = data.message;
+
+            if (data.message.includes('completed')) {
+                document.getElementById(`icon-${data.stage}`).className = 'stage-icon completed';
+                document.getElementById(`icon-${data.stage}`).textContent = '✓';
+                const match = data.message.match(/(\d+) findings/);
+                if (match) {
+                    document.getElementById(`findings-${data.stage}`).textContent = `${match[1]} found`;
+                }
+            }
+
+            // Update progress bar
+            const completed = stageList.querySelectorAll('.stage-icon.completed').length;
+            const pct = (completed / totalStages) * 100;
+            document.getElementById('progressFill').style.width = pct + '%';
+        }
+
+        async function onComplete(data) {
+            resetButton();
+            document.getElementById('progressFill').style.width = '100%';
+
+            // Fetch full results
+            try {
+                const res = await fetch(`${API}/api/pipeline/${currentRunId}`);
+                const result = await res.json();
+                displayResults(result);
+            } catch (e) {
+                console.error('Failed to fetch results:', e);
+            }
+        }
+
+        function displayResults(result) {
+            document.getElementById('resultsSection').classList.remove('hidden');
+
+            // Summary
+            const summary = result.summary;
+            let html = `<p><strong>Target:</strong> ${summary.target}</p>`;
+            html += `<p><strong>Total Findings:</strong> ${summary.total_findings}</p>`;
+            html += `<p><strong>Elapsed:</strong> ${result.elapsed.toFixed(1)}s</p>`;
+            html += '<h4 style="margin-top:12px; font-size:0.9rem;">By Category:</h4><ul>';
+            for (const [cat, count] of Object.entries(summary.by_category)) {
+                html += `<li>${cat}: ${count}</li>`;
+            }
+            html += '</ul>';
+            document.getElementById('summaryContent').innerHTML = html;
+
+            // Findings
+            const findings = result.findings || [];
+            if (findings.length === 0) {
+                document.getElementById('findingsList').innerHTML = '<div class="empty-state">No findings</div>';
+                return;
+            }
+            let fhtml = '';
+            for (const f of findings.slice(0, 50)) {
+                const sev = f.severity || f._category || 'info';
+                const cls = sev.toLowerCase().includes('critical') ? 'critical' :
+                           sev.toLowerCase().includes('high') ? 'high' :
+                           sev.toLowerCase().includes('medium') ? 'medium' : 'low';
+                const text = f.subdomain || f.url || f.template || f.name || JSON.stringify(f).slice(0, 100);
+                fhtml += `<div class="finding ${cls}">${text}</div>`;
+            }
+            document.getElementById('findingsList').innerHTML = fhtml;
+        }
+
+        function resetButton() {
+            document.getElementById('runBtn').disabled = false;
+            document.getElementById('runBtn').textContent = '🚀 Run Pipeline';
+        }
+
+        async function loadTools() {
+            try {
+                const res = await fetch(`${API}/api/tools`);
+                const data = await res.json();
+                let html = '';
+                for (const t of data.tools) {
+                    const statusCls = t.installed ? 'installed' : 'missing';
+                    const statusText = t.installed ? '✅ Installed' : '⚠️ Not installed';
+                    const installBtn = t.installed ? '' :
+                        `<button class="install-btn" onclick="installTool('${t.name}')">Install</button>`;
+                    html += `
+                        <div class="tool-card">
+                            <div class="tool-name">${t.name}</div>
+                            <div class="tool-desc">${t.description}</div>
+                            <div class="tool-status ${statusCls}">${statusText} (${t.install_method})</div>
+                            ${installBtn}
+                        </div>`;
+                }
+                document.getElementById('toolsGrid').innerHTML = html;
+            } catch (e) {
+                document.getElementById('toolsGrid').innerHTML = `<div class="empty-state">Failed to load: ${e}</div>`;
+            }
+        }
+
+        async function installTool(name) {
+            try {
+                const res = await fetch(`${API}/api/tools/${name}/install`, { method: 'POST' });
+                const data = await res.json();
+                if (data.installed) {
+                    loadTools();
+                } else {
+                    alert(`Failed to install ${name}. Check logs.`);
+                }
+            } catch (e) {
+                alert('Error: ' + e);
+            }
+        }
+
+        // Load tools on page load
+        loadTools();
+    </script>
+</body>
+</html>

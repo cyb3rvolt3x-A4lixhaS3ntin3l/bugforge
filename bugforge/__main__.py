@@ -39,6 +39,8 @@ def main(argv=None) -> int:
     _add_recon(sub)
     _add_vulns(sub)
     _add_report(sub)
+    _add_orchestrate(sub)
+    _add_serve(sub)
 
     args = parser.parse_args(argv)
     set_verbose(args.verbose)
@@ -355,6 +357,123 @@ def _report_cvss(args):
     from .reporting.cvss import Cvss31, CvssVector
     info = Cvss31.full(CvssVector.parse(args.vector))
     print(json.dumps(info, indent=2))
+    return 0
+
+
+# ---------------- orchestrate (v2.0) ----------------
+def _add_orchestrate(sub):
+    p = sub.add_parser("orchestrate", help="run external tools via orchestrator (v2.0)")
+    sp = p.add_subparsers(dest="cmd", required=True)
+
+    t = sp.add_parser("tools", help="list all registered tools and install status")
+    t.set_defaults(func=_orch_tools)
+
+    i = sp.add_parser("install", help="install a specific tool")
+    i.add_argument("name", help="tool name")
+    i.set_defaults(func=_orch_install)
+
+    r = sp.add_parser("run", help="run a single tool against a target")
+    r.add_argument("--tool", required=True, help="tool name (e.g. subfinder)")
+    r.add_argument("--target", required=True, help="target domain/URL")
+    r.set_defaults(func=_orch_run)
+
+    pl = sp.add_parser("pipeline", help="run the full pipeline against a target")
+    pl.add_argument("--target", required=True)
+    pl.add_argument("--brief", help="scope brief file")
+    pl.add_argument("--skip", nargs="*", help="stages to skip")
+    pl.set_defaults(func=_orch_pipeline)
+
+
+def _orch_tools(args):
+    from .orchestrator.engine import ToolOrchestrator
+    orch = ToolOrchestrator(auto_install=False)
+    status = orch.status()
+    print(f"{c('BugForge Tool Arsenal', Colors.BOLD)}\n")
+    for t in status:
+        icon = c("✓", Colors.GREEN) if t["installed"] else c("✗", Colors.YELLOW)
+        print(f"  {icon} {t['name']:<20} {t['category']:<15} {t['description']}")
+        if not t["installed"]:
+            print(f"    {c('install:', Colors.GREY)} {t['install_method']}  {c(t['github'], Colors.GREY)}")
+    installed = sum(1 for t in status if t["installed"])
+    print(f"\n{c('Installed:', Colors.BOLD)} {installed}/{len(status)} tools")
+    return 0
+
+
+def _orch_install(args):
+    from .orchestrator.engine import ToolOrchestrator
+    orch = ToolOrchestrator(auto_install=True)
+    print(f"{c('[*]', Colors.CYAN)} Installing {args.name}...")
+    success = orch.install(args.name)
+    if success:
+        print(f"{c('[+]', Colors.GREEN)} {args.name} installed successfully")
+    else:
+        print(f"{c('[!]', Colors.RED)} Failed to install {args.name}")
+    return 0 if success else 1
+
+
+def _orch_run(args):
+    import asyncio
+    from .orchestrator.engine import ToolOrchestrator
+    orch = ToolOrchestrator(auto_install=True)
+
+    async def _run():
+        result = await orch.run(args.tool, args.target)
+        if result.status.value == "completed":
+            print(f"{c('[+]', Colors.GREEN)} {args.tool} completed in {result.elapsed:.1f}s")
+            print(f"{c('Findings:', Colors.BOLD)} {len(result.findings)}")
+            for f in result.findings[:20]:
+                print(f"  {json.dumps(f, indent=2) if isinstance(f, dict) else f}")
+        else:
+            print(f"{c('[!]', Colors.RED)} {args.tool} {result.status.value}: {result.error}")
+        return result
+
+    asyncio.run(_run())
+    return 0
+
+
+def _orch_pipeline(args):
+    import asyncio
+    from .orchestrator.engine import ToolOrchestrator
+    from .pipeline.stages import Pipeline
+    from .scope.validator import load_brief_file
+
+    scope = None
+    if args.brief:
+        scope = load_brief_file(args.brief)
+    orch = ToolOrchestrator(auto_install=True)
+    pipe = Pipeline(orch, scope=scope)
+
+    async def on_progress(stage, tool, msg):
+        print(f"  {c(f'[{stage}]', Colors.CYAN)} {tool}: {msg}")
+
+    async def _run():
+        print(f"{c('[*]', Colors.CYAN)} Starting pipeline against {args.target}...\n")
+        result = await pipe.run(args.target, on_progress=on_progress, skip_stages=args.skip)
+        print(f"\n{c('Pipeline Complete', Colors.BOLD)}")
+        print(f"  Target: {result.target}")
+        print(f"  Total findings: {len(result.all_findings)}")
+        print(f"  Elapsed: {result.total_elapsed:.1f}s")
+        summary = result.summary()
+        for cat, count in summary["by_category"].items():
+            print(f"    {cat}: {count}")
+        return result
+
+    asyncio.run(_run())
+    return 0
+
+
+# ---------------- serve (v2.0) ----------------
+def _add_serve(sub):
+    p = sub.add_parser("serve", help="start the BugForge web UI server (v2.0)")
+    p.add_argument("--host", default="127.0.0.1", help="bind host (default: 127.0.0.1)")
+    p.add_argument("--port", type=int, default=8000, help="port (default: 8000)")
+    p.add_argument("--no-browser", action="store_true", help="don't auto-open browser")
+    p.set_defaults(func=_serve)
+
+
+def _serve(args):
+    from .web.server import serve
+    serve(args)
     return 0
 
 
