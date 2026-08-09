@@ -1,5 +1,5 @@
 import pytest
-from bugforge.reporting.report import ReportBuilder, ReportTemplate
+from gungnir.reporting.report import ReportBuilder, ReportTemplate
 
 
 def test_xss_template_builds_markdown():

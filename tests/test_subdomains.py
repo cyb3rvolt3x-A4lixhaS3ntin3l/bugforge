@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from bugforge.recon.subdomains import SubdomainEnum, Subdomain
-from bugforge.scope.validator import parse_brief
+from gungnir.recon.subdomains import SubdomainEnum, Subdomain
+from gungnir.scope.validator import parse_brief
 
 
 def _mock_response(text):
@@ -47,7 +47,7 @@ def test_enumerate_resolve_skips_unresolvable():
     with patch.object(enum.client, "get", side_effect=[
         _mock_response(crt_data), _mock_response(""), _mock_response(""), _mock_response(""),
     ]):
-        with patch("bugforge.recon.subdomains.socket.gethostbyname", return_value="1.2.3.4"):
+        with patch("gungnir.recon.subdomains.socket.gethostbyname", return_value="1.2.3.4"):
             results = enum.enumerate("example.com", resolve=True)
     assert all(r.ip is not None for r in results)
     assert results[0].ip == "1.2.3.4"

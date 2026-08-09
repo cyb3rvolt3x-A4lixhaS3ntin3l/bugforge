@@ -1,4 +1,4 @@
-from bugforge.vulns.sqli import SqliHelper
+from gungnir.vulns.sqli import SqliHelper
 from unittest.mock import patch, MagicMock
 
 

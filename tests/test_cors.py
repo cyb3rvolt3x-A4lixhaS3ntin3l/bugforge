@@ -1,5 +1,5 @@
-from bugforge.vulns.cors import CorsChecker, CorsResult
-from bugforge.utils.http import HttpResponse
+from gungnir.vulns.cors import CorsChecker, CorsResult
+from gungnir.utils.http import HttpResponse
 from unittest.mock import patch
 
 

@@ -1,4 +1,4 @@
-from bugforge.vulns.ssrf import SsrfHelper, CLOUD_METADATA
+from gungnir.vulns.ssrf import SsrfHelper, CLOUD_METADATA
 
 
 def test_metadata_payloads_cover_clouds():

@@ -1,5 +1,5 @@
 import pytest
-from bugforge.scope.validator import parse_brief, load_brief_file, Scope, ScopeValidator, _parse_rule
+from gungnir.scope.validator import parse_brief, load_brief_file, Scope, ScopeValidator, _parse_rule
 
 
 def test_parse_wildcard_in_scope():

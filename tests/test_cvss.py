@@ -1,5 +1,5 @@
 import pytest
-from bugforge.reporting.cvss import Cvss31, CvssVector
+from gungnir.reporting.cvss import Cvss31, CvssVector
 
 
 def test_critical_vector():

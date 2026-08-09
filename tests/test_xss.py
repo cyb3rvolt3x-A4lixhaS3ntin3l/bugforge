@@ -1,5 +1,5 @@
 import pytest
-from bugforge.vulns.xss import XssPayloadGen, MUTATIONS
+from gungnir.vulns.xss import XssPayloadGen, MUTATIONS
 
 
 def test_base_payloads_nonempty():

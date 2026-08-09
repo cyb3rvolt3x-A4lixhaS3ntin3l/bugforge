@@ -1,5 +1,5 @@
-from bugforge.recon.fingerprint import TechFingerprinter, FingerprintResult
-from bugforge.utils.http import HttpResponse
+from gungnir.recon.fingerprint import TechFingerprinter, FingerprintResult
+from gungnir.utils.http import HttpResponse
 from unittest.mock import patch
 
 

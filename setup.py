@@ -4,12 +4,12 @@ with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="bugforge",
-    version="3.1.0",
+    name="gungnir",
+    version="4.0.0",
     description="Bug bounty intelligence platform — parallel scanning, attack chain correlation, custom pipelines, web UI",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    author="BugForge Contributors",
+    author="Gungnir Contributors",
     license="MIT",
     packages=find_packages(exclude=["tests", "tests.*"]),
     python_requires=">=3.10",
@@ -26,7 +26,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "bugforge=bugforge.__main__:main",
+            "gungnir=gungnir.__main__:main",
         ],
     },
     classifiers=[
