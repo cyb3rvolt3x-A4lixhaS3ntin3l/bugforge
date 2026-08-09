@@ -107,7 +107,8 @@ register(ToolDefinition(
 register(ToolDefinition(
     name="assetfinder",
     category=ToolCategory.RECON,
-    description="Fast passive subdomain discovery",
+    description="Fast passive subdomain discovery"
+,
     binary="assetfinder",
     install_method=InstallMethod.GO,
     install_command="go install github.com/tomnomnom/assetfinder@latest",
