@@ -1,4 +1,4 @@
-# ── build stage: compile Go-based security tools ──────────────────────────
+# ── build stage: compile Go-based security tools ───────────────────────────────────
 FROM golang:1.22-bookworm AS tool-builder
 
 # Pre-install all Go-based security tools that BugForge orchestrates.
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y git && \
     git clone --depth 1 https://github.com/danielmiessler/SecLists.git /tools/seclists && \
     rm -rf /tools/seclists/.git
 
-# ── runtime stage: Python + tools ──────────────────────────────────────────
+# ── runtime stage: Python + tools ──────────────────────────────────────────────
 FROM python:3.12-slim-bookworm
 
 LABEL maintainer="BugForge Contributors"
