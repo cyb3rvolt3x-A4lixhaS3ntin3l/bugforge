@@ -20,7 +20,7 @@ from ..utils.logger import get_logger
 log = get_logger()
 
 
-# ── Per-factor weights (sum to 1.0) ────────────────────────────────────
+# ── Per-factor weights (sum to 1.0) ────────────────────────────────────────
 # Tuned so that raw severity and confidence dominate, with verified, chain
 # membership and exploitability providing meaningful but bounded adjustments.
 FACTOR_WEIGHTS: Dict[str, float] = {
@@ -30,7 +30,7 @@ FACTOR_WEIGHTS: Dict[str, float] = {
     "endpoint_sensitivity": 0.10,
     "secret_type":          0.08,
     "tech_relevance":       0.07,
-    "exposure_level":        0.08,
+    "exposure_level":       0.08,
     "chain_member":         0.10,
     "novelty":              0.05,
     "exploitability":       0.07,
@@ -38,7 +38,7 @@ FACTOR_WEIGHTS: Dict[str, float] = {
 assert abs(sum(FACTOR_WEIGHTS.values()) - 1.0) < 1e-6, "Factor weights must sum to 1.0"
 
 
-# ── Factor score tables ───────────────────────────────────────────────
+# ── Factor score tables ────────────────────────────────────────────────────
 
 _SEVERITY_SCORES: Dict[Severity, float] = {
     Severity.CRITICAL: 0.9,
@@ -85,7 +85,7 @@ _SECRET_TYPE_SCORES: List[tuple] = [
 ]
 
 
-# ── Factor scorers (each returns 0.0–1.0) ─────────────────────────────
+# ── Factor scorers (each returns 0.0–1.0) ─────────────────────────────────
 
 def _score_severity(f: Finding) -> float:
     return _SEVERITY_SCORES.get(f.severity, 0.3)
@@ -254,7 +254,7 @@ def enhanced_prioritize(findings: List[Finding]) -> List[Finding]:
     return findings
 
 
-# ── Human-readable explanation ────────────────────────────────────────
+# ── Human-readable explanation ────────────────────────────────────────────
 
 def _fmt(factor: str, score: float, weight: float) -> str:
     contribution = round(score * weight, 4)
