@@ -1,155 +1,157 @@
 # BugForge
 
-> A modular, dependency-light toolkit for bug bounty hunters and security researchers — recon, vulnerability helpers, scope validation, and professional report generation. Built to help you hunt responsibly and earn.
+> **v2.0** — A bug bounty orchestration platform with a web UI that automatically runs the best open-source security tools for you. One click → full pipeline. Users install nothing individually.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![CI](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/bugforge/actions/workflows/ci.yml/badge.svg)](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/bugforge/actions)
+[![Version](https://img.shields.io/badge/version-2.0.0--alpha-orange.svg)]()
 
-## Why BugForge?
+## What's New in v2.0
 
-Most bug-bounty tooling is either a giant dependency tree or a pile of loose scripts. **BugForge** is a single, cohesive Python package with **zero third-party runtime dependencies** — it runs anywhere Python 3.10+ does, on any cloud shell or VM.
+BugForge v2.0 is a **fundamental redesign**. Instead of reimplementing what industry-standard tools already do well, BugForge now **orchestrates them**:
 
-It focuses on the parts of the workflow where automation genuinely helps:
+| v1.0 | v2.0 |
+|---|---|
+| 20 hardcoded XSS payloads | Wraps **Dalfox** (DOM-aware, headless browser, 200+ payloads) |
+| 45-word content wordlist | Wraps **ffuf** (200K+ wordlists, recursion, vhost) |
+| 4 subdomain sources | Wraps **Subfinder** (30+ sources) + **Amass** + **assetfinder** |
+| 25 secret regexes | Wraps **gitleaks** (700+ patterns) + **trufflehog** (API verification) |
+| Basic SQLi length comparison | Wraps **sqlmap** (full exploitation framework) |
+| Basic CORS check | Wraps **corsy** (15+ probe origins) |
+| No vuln templates | Wraps **Nuclei** (5000+ community templates) |
+| CLI only | **Web UI dashboard** with real-time WebSocket progress |
+| Manual tool chaining | **Pipeline engine** — recon → probe → scan → vuln → report |
 
-- **Recon** that respects your program's scope
-- **Payload & detection helpers** for the most common, high-paying bug classes
-- **Scope validation** so you never accidentally test out-of-bounds assets
-- **Report generation** that produces triager-friendly Markdown with CVSS scores
+### The Key Innovation
 
-## ⚖️ Ethics & Responsible Disclosure
+**Users don't install Subfinder, ffuf, Nuclei, sqlmap, Dalfox, gitleaks individually.** BugForge's orchestrator engine:
 
-BugForge is for **authorized testing only**. Always:
+1. Checks if a tool is installed
+2. Auto-installs it if missing (`go install`, `pip install`, or system package)
+3. Runs it with optimal flags
+4. Parses JSON output into standardized results
+5. Feeds results into the next pipeline stage
+6. Streams progress to the web dashboard in real-time
 
-1. Read and follow the program's brief, rules, and out-of-scope list.
-2. Verify every target is in scope *before* testing — use the `scope` module.
-3. Do **not** run destructive tests, denial-of-service, or mass scanning against targets.
-4. Do **not** exfiltrate, modify, or retain other users' data.
-5. Report vulnerabilities through the program's official channel.
-
-**You are responsible for your own actions.** The authors are not liable for misuse.
-
-## Installation
+## Quick Start
 
 ```bash
 git clone https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/bugforge.git
 cd bugforge
 pip install -e .
+
+# Launch the web UI
+bugforge serve
+# → opens http://localhost:8000
 ```
 
-No external dependencies required. Optional: install `pytest` for the test suite.
+Then in the web UI:
+1. Enter your target domain
+2. Paste your Bugcrowd/HackerOne scope brief
+3. Select which pipeline stages to run
+4. Click **Run Pipeline**
+5. Watch results stream in real-time
 
-## Quick Start
-
-### Validate scope first — always
-```bash
-# brief.txt
-in_scope:
-  - "*.example.com"
-  - "10.0.0.0/24"
-out_of_scope:
-  - "*.staging.example.com"
-
-bugforge scope check --brief brief.txt --target https://app.example.com --target https://staging.example.com
-```
-
-### Recon
-```bash
-# Enumerate subdomains (passive, multiple sources), resolving to IPs
-bugforge recon subdomains --domain example.com --resolve --scope brief.txt --out subs.txt
-
-# Content/endpoint discovery
-bugforge recon content --url https://example.com --status 200,301,403
-
-# Technology fingerprinting + security-header audit
-bugforge recon fingerprint --url https://example.com --audit
-```
-
-### Vulnerability helpers
-```bash
-# Generate a mutated XSS payload wordlist
-bugforge vulns xss --generate --out xss-payloads.txt
-
-# Build SSRF payloads for cloud metadata & filter bypasses
-bugforge vulns ssrf --metadata --bypass --callback your.interactsh.io --out ssrf.txt
-
-# Check for CORS misconfiguration
-bugforge vulns cors --url https://api.example.com/data
-
-# Scan a response file for leaked secrets
-bugforge vulns secrets --file response.html --json
-
-# Boolean/time-based SQLi detection
-bugforge vulns sqli --url 'https://example.com/item?id=1' --param id --value 1 --time
-```
-
-### Reports
-```bash
-# Generate a triager-friendly XSS report
-bugforge report xss --url 'https://example.com/search?q=test' --payload '<script>alert(1)</script>' --out reports/xss.md
-
-# Compute a CVSS v3.1 score
-bugforge report cvss --vector 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N'
-```
-
-## Modules
-
-| Module | Description |
-|---|---|
-| `bugforge.scope` | Parse Bugcrowd/HackerOne-style briefs; validate targets are in scope before testing |
-| `bugforge.recon.subdomains` | Passive subdomain enumeration (crt.sh, HackerTarget, RapidDNS, Wayback) |
-| `bugforge.recon.content` | Concurrent content/endpoint discovery with built-in wordlist |
-| `bugforge.recon.fingerprint` | Technology & security-header fingerprinting |
-| `bugforge.vulns.xss` | XSS payload generation + mutation engine |
-| `bugforge.vulns.ssrf` | SSRF payload generation (metadata, bypass, OOB callback) + response analysis |
-| `bugforge.vulns.secrets` | Secret scanner with curated regex set (AWS, GCP, GitHub, Stripe, JWT, keys…) |
-| `bugforge.vulns.idor` | IDOR/access-control checker comparing two auth contexts |
-| `bugforge.vulns.cors` | CORS misconfiguration detection |
-| `bugforge.vulns.sqli` | Error/boolean/time-based SQLi detection |
-| `bugforge.reporting.cvss` | Self-contained CVSS v3.1 base-score calculator |
-| `bugforge.reporting.report` | Markdown report builder with templates for common bug classes |
-
-## Library usage
-
-BugForge is a library first, CLI second:
-
-```python
-from bugforge.vulns.xss import XssPayloadGen
-from bugforge.scope.validator import parse_brief
-from bugforge.reporting.report import ReportBuilder
-
-# Validate scope
-scope = parse_brief("""
-in_scope:
-  - *.example.com
-""")
-assert scope.is_in_scope("https://api.example.com/")[0] is True
-
-# Generate payloads
-payloads = XssPayloadGen().generate(mutate=True)
-print(f"{len(payloads)} payloads ready")
-
-# Build a report
-report = ReportBuilder(ReportBuilder.ssrf_template(
-    "https://api.example.com/fetch?url=http://evil",
-    "http://169.254.169.254/latest/meta-data/")).build()
-```
-
-## Testing
+## CLI Usage (v2.0)
 
 ```bash
-pip install pytest
-pytest -q
+# List all tools and their install status
+bugforge orchestrate tools
+
+# Install a specific tool
+bugforge orchestrate install subfinder
+
+# Run a single tool
+bugforge orchestrate run --tool subfinder --target example.com
+
+# Run the full pipeline
+bugforge orchestrate pipeline --target example.com --brief brief.txt
+
+# Start the web server
+bugforge serve --host 0.0.0.0 --port 8000
 ```
 
-## Contributing
+## Tool Arsenal
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). PRs welcome — especially new payload sets, detection signatures, and report templates.
+BugForge orchestrates 14 tools across 9 categories:
+
+| Tool | Category | What it does | Install |
+|---|---|---|---|
+| **subfinder** | recon | Passive subdomain enum (30+ sources) | `go install` |
+| **amass** | recon | Active + passive enum with permutations | `go install` |
+| **assetfinder** | recon | Fast lightweight subdomain discovery | `go install` |
+| **httpx** | fingerprint | HTTP probe — status, title, tech, headers | `go install` |
+| **ffuf** | discovery | Content/endpoint fuzzer (200K+ wordlists) | `go install` |
+| **nuclei** | vuln_scan | Template-based scanner (5000+ templates) | `go install` |
+| **dalfox** | xss | DOM-aware XSS scanner with headless browser | `go install` |
+| **sqlmap** | sqli | Full SQLi exploitation framework | `pip install` |
+| **gitleaks** | secret | Git history scanner (700+ patterns) | `go install` |
+| **trufflehog** | secret | Secret scanner with API verification | `go install` |
+| **corsy** | cors | CORS misconfiguration scanner (15+ origins) | `go install` |
+| **nmap** | ports | Port scanner + service fingerprinter | system |
+| **bugforge-secrets** | secret | Native fallback (no deps) | builtin |
+| **bugforge-cors** | cors | Native fallback (no deps) | builtin |
+
+## Pipeline Stages
+
+```
+1. RECON         → subfinder/amass/assetfinder  (find subdomains)
+2. PROBE         → httpx                          (find live hosts)
+3. FINGERPRINT   → httpx                          (identify tech stack)
+4. DISCOVERY     → ffuf                           (find hidden endpoints)
+5. VULN_SCAN     → nuclei                         (5000+ vulnerability templates)
+6. XSS           → dalfox                         (DOM-aware XSS testing)
+7. SQLI          → sqlmap                         (SQL injection testing)
+8. SECRET        → gitleaks/trufflehog            (leaked secret scanning)
+9. CORS          → corsy                          (CORS misconfiguration)
+```
+
+Each stage feeds its output into the next. Results stream via WebSocket.
+
+## Prerequisites
+
+- **Python 3.10+**
+- **Go 1.21+** (for auto-installing Go-based tools — most of them)
+- On first run, BugForge auto-installs tools via `go install` / `pip install`
+
+## API
+
+BugForge v2.0 exposes a full REST + WebSocket API:
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/` | GET | Web UI dashboard |
+| `/api/tools` | GET | List all tools + install status |
+| `/api/tools/{name}/install` | POST | Manually install a tool |
+| `/api/pipeline/run` | POST | Start a pipeline (returns run_id) |
+| `/api/pipeline/{id}` | GET | Get pipeline results |
+| `/ws/pipeline/{id}` | WS | Real-time progress updates |
+| `/api/scope/check` | POST | Validate target against scope |
+| `/api/report` | POST | Generate Markdown report |
+| `/api/health` | GET | Health check |
+
+## ⚖️ Ethics & Responsible Disclosure
+
+BugForge is for **authorized testing only**. Always:
+1. Read and follow the program's brief and scope
+2. Use the built-in scope validator before testing
+3. Do not run destructive tests or denial-of-service
+4. Report vulnerabilities through official channels
+
+**You are responsible for your own actions.**
+
+## v1.0 Features (Still Included)
+
+All v1.0 modules remain available as CLI commands and library imports:
+- `scope` — brief parsing & in-scope validation
+- `recon` — native subdomain/content/fingerprint tools (fallback when external tools unavailable)
+- `vulns` — XSS payload gen, SSRF helper, secret scanner, IDOR, CORS, SQLi helpers
+- `reporting` — CVSS v3.1 calculator + Markdown report templates
 
 ## License
 
-[MIT](LICENSE) — use it, fork it, build your reputation on it.
+[MIT](LICENSE)
 
-## Disclaimer
+## Status
 
-This software is provided for educational and authorized security testing purposes only. The authors and contributors are not responsible for any misuse or damage caused by this tool. Always obtain explicit authorization before testing any system, and adhere to the rules of engagement defined by the target program.
+**v2.0.0-alpha** — the orchestration layer, pipeline engine, web UI, and API are functional. Tool integrations are defined and tested via the registry. Production hardening, Docker support, and more tool integrations are in progress.

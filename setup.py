@@ -5,17 +5,22 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="bugforge",
-    version="1.0.0",
-    description="A modular, dependency-light bug bounty toolkit (recon, vuln helpers, scope validation, reports)",
+    version="2.0.0",
+    description="Bug bounty orchestration platform — web UI, tool orchestration, pipeline engine, recon, vulns, reports",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="BugForge Contributors",
     license="MIT",
     packages=find_packages(exclude=["tests", "tests.*"]),
     python_requires=">=3.10",
-    install_requires=[],  # zero runtime deps — stdlib only
+    install_requires=[
+        "fastapi>=0.104.0",
+        "uvicorn[standard]>=0.24.0",
+        "pydantic>=2.0.0",
+        "websockets>=12.0",
+    ],
     extras_require={
-        "dev": ["pytest>=7.0", "pytest-cov"],
+        "dev": ["pytest>=7.0", "pytest-asyncio>=0.23.0", "httpx"],
     },
     entry_points={
         "console_scripts": [
@@ -23,7 +28,7 @@ setup(
         ],
     },
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Information Technology",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
@@ -33,5 +38,5 @@ setup(
         "Topic :: Security",
         "Topic :: Software Development :: Testing",
     ],
-    keywords="bug bounty, security, pentesting, recon, xss, ssrf, sqli, idor, cors, cvss",
+    keywords="bug bounty, security, pentesting, recon, orchestration, subfinder, nuclei, ffuf, dalfox, sqlmap",
 )
