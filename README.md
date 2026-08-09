@@ -1,4 +1,4 @@
-# BugForge
+# Gungnir
 
 > **v3.0 — APEX**: A parallel, intelligence-driven bug bounty platform that fires all tools simultaneously, correlates findings into attack chains, verifies criticals, persists to SQLite, and diffs against previous runs.
 
@@ -6,9 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-3.0.0--alpha-orange.svg)]()
 
-## What BugForge Does
+## What Gungnir Does
 
-BugForge runs a complete security sweep against any target — domain, IP, CIDR, or URL — in 3-5 minutes. It:
+Gungnir runs a complete security sweep against any target — domain, IP, CIDR, or URL — in 3-5 minutes. It:
 
 1. **Auto-detects** the target type (domain, IP, CIDR, URL) and selects the right tool combination
 2. **Downloads pre-compiled binaries** for 10+ security tools on first run (no Go, no Docker needed)
@@ -24,39 +24,39 @@ BugForge runs a complete security sweep against any target — domain, IP, CIDR,
 ## Quick Start
 
 ```bash
-pip install bugforge
+pip install gungnir
 
 # First run — downloads tool binaries automatically (~30s)
-bugforge hunt example.com --scope brief.txt
+gungnir hunt example.com --scope brief.txt
 
 # Subsequent runs — everything cached
-bugforge hunt example.com
+gungnir hunt example.com
 
 # Native modules only (no external tools needed)
-bugforge hunt example.com --no-tools
+gungnir hunt example.com --no-tools
 
 # Get JSON output
-bugforge hunt example.com --json results.json
+gungnir hunt example.com --json results.json
 
 # Generate Markdown report
-bugforge hunt example.com --report report.md
+gungnir hunt example.com --report report.md
 ```
 
 ## CLI Commands
 
 ```bash
-bugforge hunt <target> [--scope brief.txt] [--no-tools] [--no-verify] [--json out.json] [--report out.md]
-bugforge tools list
-bugforge tools install <name>
-bugforge tools install-all
-bugforge scope --brief brief.txt --target example.com
-bugforge history example.com
+gungnir hunt <target> [--scope brief.txt] [--no-tools] [--no-verify] [--json out.json] [--report out.md]
+gungnir tools list
+gungnir tools install <name>
+gungnir tools install-all
+gungnir scope --brief brief.txt --target example.com
+gungnir history example.com
 ```
 
 ## Architecture
 
 ```
-bugforge hunt <target>
+gungnir hunt <target>
        │
        ▼
   TARGET AUTO-DETECTOR (IP? Domain? CIDR? URL?)
@@ -101,7 +101,7 @@ bugforge hunt <target>
 
 ## Tool Arsenal
 
-BugForge auto-downloads pre-compiled binaries for these tools:
+Gungnir auto-downloads pre-compiled binaries for these tools:
 
 | Tool | Category | What It Does |
 |---|---|---|
@@ -119,7 +119,7 @@ BugForge auto-downloads pre-compiled binaries for these tools:
 
 ## Native Modules (No External Tools Required)
 
-BugForge includes three analysis modules that run without any external tools:
+Gungnir includes three analysis modules that run without any external tools:
 
 ### JavaScript Analyzer
 Downloads and analyzes JS files from the target:
@@ -148,7 +148,7 @@ Probes for common API endpoints:
 
 ### Correlation + Attack Chains
 
-BugForge doesn't just dump raw tool output. It correlates findings across tools:
+Gungnir doesn't just dump raw tool output. It correlates findings across tools:
 
 | Pattern | Attack Chain |
 |---|---|
@@ -186,7 +186,7 @@ Critical and high findings are re-tested before reporting:
 
 ## Persistence + Diffing
 
-BugForge saves every scan to SQLite (`~/.bugforge/bugforge.db`). When you scan the same target again, it shows:
+Gungnir saves every scan to SQLite (`~/.gungnir/gungnir.db`). When you scan the same target again, it shows:
 
 ```
 DIFF vs last run
@@ -200,15 +200,15 @@ This is critical for recurring bug bounty work — you only care about what chan
 ### Test 1: Native modules against example.com
 
 ```bash
-$ bugforge hunt example.com --no-tools --no-verify --json results.json --report report.md
+$ gungnir hunt example.com --no-tools --no-verify --json results.json --report report.md
 ```
 
 **Output:**
 ```
-╔══════════════════════════════════════════════╗
-║  BUGFORGE v3 — APEX                           ║
+╔══════════════════════════════════════════╗
+║  GUNGNIR v3 — APEX                       ║
 ║  Target: example.com (domain)                 ║
-╚══════════════════════════════════════════════╝
+╚══════════════════════════════════════════╝
 
   [native] running JS analyzer, param miner, API discovery...
   [native] ✓ 1 native findings
@@ -216,21 +216,21 @@ $ bugforge hunt example.com --no-tools --no-verify --json results.json --report 
   [correlate] Analyzing 1 findings...
   [save] Persisting to SQLite...
 
-══════════════════════════════════════════════════
+══════════════════════════════════════════
   RESULTS — 1 actionable findings, 0 attack chains
-══════════════════════════════════════════════════
+══════════════════════════════════════════
 
   🟡 MEDIUM  Js Files Found
      Asset: example.com  Source: js_analyzer
 
-══════════════════════════════════════════════════
+══════════════════════════════════════════
   DIFF vs last run
   1 NEW | 0 RESOLVED | 0 recurring
-══════════════════════════════════════════════════
+══════════════════════════════════════════
 
   [report] Report saved to report.md
   [json] JSON saved to results.json
-  Database: ~/.bugforge/bugforge.db
+  Database: ~/.gungnir/gungnir.db
   Total time: 1.0s
 ```
 
@@ -246,7 +246,7 @@ DIFF vs last run
 ### Test 3: Scan history
 
 ```bash
-$ bugforge history example.com
+$ gungnir history example.com
 ```
 
 ```
@@ -259,7 +259,7 @@ Scan History for example.com
 ### Test 4: Scope validation
 
 ```bash
-$ bugforge scope --brief brief.txt --target https://app.example.com --target https://staging.example.com
+$ gungnir scope --brief brief.txt --target https://app.example.com --target https://staging.example.com
 ```
 
 ```
@@ -270,17 +270,17 @@ $ bugforge scope --brief brief.txt --target https://app.example.com --target htt
 ### Test 5: Tool management
 
 ```bash
-$ bugforge tools list
+$ gungnir tools list
 ```
 
 ```
-BugForge Tool Arsenal
+Gungnir Tool Arsenal
 
-  ✓ subfinder            /home/pi/.bugforge/bin/subfinder
-  ✓ nuclei               /home/pi/.bugforge/bin/nuclei
-  ✓ dalfox               /home/pi/.bugforge/bin/dalfox
-  ✓ gitleaks             /home/pi/.bugforge/bin/gitleaks
-  ✓ ffuf                 /home/pi/.bugforge/bin/ffuf
+  ✓ subfinder            /home/pi/.gungnir/bin/subfinder
+  ✓ nuclei               /home/pi/.gungnir/bin/nuclei
+  ✓ dalfox               /home/pi/.gungnir/bin/dalfox
+  ✓ gitleaks             /home/pi/.gungnir/bin/gitleaks
+  ✓ ffuf                 /home/pi/.gungnir/bin/ffuf
   ✗ httpx                (not installed)
   ✗ sqlmap               (not installed)
   ✗ nmap                 (not installed)
@@ -293,7 +293,7 @@ Installed: 5/10
 ### Test 6: Generated Markdown Report
 
 ```markdown
-# BugForge Scan Report — example.com
+# Gungnir Scan Report — example.com
 
 **Date:** 2026-08-09 12:59 UTC  
 **Findings:** 1  
@@ -308,12 +308,12 @@ Installed: 5/10
 **Confidence:** 60%
 
 ---
-*Generated with BugForge v3 — APEX*
+*Generated with Gungnir v3 — APEX*
 ```
 
-## What BugForge Can Do With All Tools Installed
+## What Gungnir Can Do With All Tools Installed
 
-When all external tools are available, BugForge fires them all in parallel:
+When all external tools are available, Gungnir fires them all in parallel:
 
 **Wave 1 (Discovery, ~30s):**
 - subfinder, amass, assetfinder — all find subdomains simultaneously
@@ -344,7 +344,7 @@ When all external tools are available, BugForge fires them all in parallel:
 
 ## Target Types
 
-| Target | What BugForge Does |
+| Target | What Gungnir Does |
 |---|---|
 | `example.com` (domain) | Subdomain enum → probe → deep scan all subdomains |
 | `192.168.1.1` (IP) | Port scan → service detect → web probe → vuln scan |
@@ -353,8 +353,8 @@ When all external tools are available, BugForge fires them all in parallel:
 
 ## ⚖️ Ethics
 
-BugForge is for **authorized testing only**. Always:
-1. Validate scope before scanning (`bugforge scope --brief ... --target ...`)
+Gungnir is for **authorized testing only**. Always:
+1. Validate scope before scanning (`gungnir scope --brief ... --target ...`)
 2. Follow program rules and rate limits
 3. Do not run destructive tests
 4. Report through official channels
