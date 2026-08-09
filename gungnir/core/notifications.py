@@ -39,7 +39,7 @@ class NotificationConfig:
         return bool(self.webhook_url or self.slack_webhook or self.discord_webhook)
 
 
-# ── Finding coercion (avoid hard import cycle with correlate) ────────
+# ── Finding coercion (avoid hard import cycle with correlate) ──────────────
 def _severity_str(sev) -> str:
     # Severity is a str-Enum, so str(sev) gives the value already,
     # but be defensive for plain strings.
@@ -72,7 +72,7 @@ def _finding_brief(finding: Union[dict, object]) -> dict:
     }
 
 
-# ── HTTP transport ────────────────────────────────────────────────────
+# ── HTTP transport ─────────────────────────────────────────────────────────
 def _post_json(url: str, payload: dict, timeout: int = DEFAULT_TIMEOUT) -> bool:
     """POST JSON to a webhook. Returns True on 2xx, logs on failure."""
     try:
@@ -98,14 +98,14 @@ def _post_json(url: str, payload: dict, timeout: int = DEFAULT_TIMEOUT) -> bool:
         return False
 
 
-# ── Notifier ──────────────────────────────────────────────────────────
+# ── Notifier ────────────────────────────────────────────────────────────────
 class Notifier:
     """Sends scan events to configured webhooks."""
 
     def __init__(self, config: Optional[NotificationConfig] = None):
         self.config = config or load_notification_config()
 
-    # ── scan-complete ──────────────────────────────────────────────
+    # ── scan-complete ──────────────────────────────────────────────────────
     def notify_scan_complete(
         self,
         target: str,
@@ -178,7 +178,7 @@ class Notifier:
             }
             _post_json(self.config.webhook_url, payload)
 
-    # ── single critical finding ──────────────────────────────────
+    # ── single critical finding ───────────────────────────────────────────
     def notify_finding(self, finding: Union[dict, object]) -> None:
         """Notify all configured webhooks about a single critical finding."""
         if not self.config.has_any:
@@ -245,7 +245,7 @@ class Notifier:
             _post_json(self.config.webhook_url, payload)
 
 
-# ── Config loading ───────────────────────────────────────────────────
+# ── Config loading ──────────────────────────────────────────────────────────
 def load_notification_config() -> NotificationConfig:
     """
     Load webhook config from ~/.gungnir/config.yaml (notifications: section).

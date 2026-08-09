@@ -205,10 +205,10 @@ $ gungnir hunt example.com --no-tools --no-verify --json results.json --report r
 
 **Output:**
 ```
-╔══════════════════════════════════════════╗
-║  GUNGNIR v3 — APEX                       ║
+╔══════════════════════════════════════════════╗
+║  GUNGNIR v3 — APEX                           ║
 ║  Target: example.com (domain)                 ║
-╚══════════════════════════════════════════╝
+╚══════════════════════════════════════════════╝
 
   [native] running JS analyzer, param miner, API discovery...
   [native] ✓ 1 native findings
@@ -216,17 +216,17 @@ $ gungnir hunt example.com --no-tools --no-verify --json results.json --report r
   [correlate] Analyzing 1 findings...
   [save] Persisting to SQLite...
 
-══════════════════════════════════════════
+══════════════════════════════════════════════════
   RESULTS — 1 actionable findings, 0 attack chains
-══════════════════════════════════════════
+══════════════════════════════════════════════════
 
   🟡 MEDIUM  Js Files Found
      Asset: example.com  Source: js_analyzer
 
-══════════════════════════════════════════
+══════════════════════════════════════════════════
   DIFF vs last run
   1 NEW | 0 RESOLVED | 0 recurring
-══════════════════════════════════════════
+══════════════════════════════════════════════════
 
   [report] Report saved to report.md
   [json] JSON saved to results.json
