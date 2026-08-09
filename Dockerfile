@@ -1,7 +1,7 @@
-# ── build stage: compile Go-based security tools ────────────────────────────────
+# ── build stage: compile Go-based security tools ───────────────────────
 FROM golang:1.22-bookworm AS tool-builder
 
-# Pre-install all Go-based security tools that BugForge orchestrates.
+# Pre-install all Go-based security tools that Gungnir orchestrates.
 # This is the "zero-install" magic — users never run `go install` themselves.
 RUN mkdir -p /tools/bin
 
@@ -25,11 +25,11 @@ RUN apt-get update && apt-get install -y git && \
     git clone --depth 1 https://github.com/danielmiessler/SecLists.git /tools/seclists && \
     rm -rf /tools/seclists/.git
 
-# ── runtime stage: Python + tools ────────────────────────────────────────────────
+# ── runtime stage: Python + tools ──────────────────────────────────────
 FROM python:3.12-slim-bookworm
 
-LABEL maintainer="BugForge Contributors"
-LABEL description="BugForge v2.0 — Bug bounty orchestration platform with pre-installed tools"
+LABEL maintainer="Gungnir Contributors"
+LABEL description="Gungnir v2.0 — Bug bounty orchestration platform with pre-installed tools"
 LABEL version="2.0.0"
 
 # Install system dependencies
@@ -57,8 +57,8 @@ WORKDIR /app
 COPY requirements.txt setup.py ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install BugForge itself
-COPY bugforge/ ./bugforge/
+# Install Gungnir itself
+COPY gungnir/ ./gungnir/
 RUN pip install --no-cache-dir -e .
 
 # Verify tools are available
@@ -70,7 +70,7 @@ RUN echo "=== Verifying installed tools ===" && \
     dalfox version 2>&1 | head -1 && \
     gitleaks version 2>&1 | head -1 && \
     nmap --version 2>&1 | head -1 && \
-    python3 -m bugforge --version && \
+    python3 -m gungnir --version && \
     echo "=== All tools verified ==="
 
 # Nuclei templates download (run at build time for offline use)
@@ -83,5 +83,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# Run the BugForge web server
-CMD ["python3", "-m", "bugforge", "serve", "--host", "0.0.0.0", "--port", "8000", "--no-browser"]
+# Run the Gungnir web server
+CMD ["python3", "-m", "gungnir", "serve", "--host", "0.0.0.0", "--port", "8000", "--no-browser"]
