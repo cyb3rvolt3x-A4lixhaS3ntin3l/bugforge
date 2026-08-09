@@ -1,0 +1,37 @@
+name: WordPress Hunter
+description: Optimized for WordPress sites — wp-scan, wp-login, plugin enumeration
+target_types: [domain, url]
+scope_required: false
+
+stages:
+  - name: recon
+    tools: [subfinder]
+    parallel: true
+
+  - name: probe
+    tools: [httpx]
+    parallel: true
+    filter: "tech contains 'wordpress' or title contains 'wordpress'"
+
+  - name: wp-scan
+    tools: [nuclei, ffuf]
+    parallel: true
+    condition: "tech contains 'wordpress'"
+    options:
+      nuclei:
+        severity: "medium,high,critical"
+        templates: ["http/cves/wp/", "http/exposures/wp/"]
+      ffuf:
+        wordlist: "wp-paths"
+
+  - name: xss-test
+    tools: [dalfox]
+    parallel: true
+    options:
+      dalfox:
+        only_poc: "r"
+
+output:
+  json: true
+  report: true
+  terminal: true

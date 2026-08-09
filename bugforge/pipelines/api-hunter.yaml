@@ -1,0 +1,34 @@
+name: API Hunter
+description: Optimized for API endpoints — GraphQL, REST, Swagger discovery + injection
+target_types: [domain, url]
+scope_required: false
+
+stages:
+  - name: recon
+    tools: [subfinder, assetfinder]
+    parallel: true
+
+  - name: probe
+    tools: [httpx]
+    parallel: true
+
+  - name: api-discover
+    tools: [api-discoverer, js-analyzer]
+    parallel: true
+
+  - name: injection
+    tools: [nuclei, sqlmap, dalfox]
+    parallel: true
+    condition: "endpoints contains '/api/' or api_routes > 0"
+    options:
+      nuclei:
+        severity: "medium,high,critical"
+        templates: ["api/"]
+      sqlmap:
+        level: 3
+        risk: 2
+
+output:
+  json: true
+  report: true
+  terminal: true

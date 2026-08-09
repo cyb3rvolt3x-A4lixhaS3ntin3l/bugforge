@@ -1,14 +1,6 @@
-# BugForge v2.0 runtime dependencies
-# v1.0 was zero-dep (stdlib only). v2.0 adds the web UI + async orchestration layer.
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
 websockets>=12.0
-
-# Optional: for async HTTP (better than urllib)
-# httpx>=0.25.0
-
-# Dev dependencies (install with pip install -e ".[dev]"):
-# pytest>=7.0
-# pytest-asyncio>=0.23.0
-# httpx  # for testing the API
+pyyaml>=6.0
+bcrypt>=4.0.0

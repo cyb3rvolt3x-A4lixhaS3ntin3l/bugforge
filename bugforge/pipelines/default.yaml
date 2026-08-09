@@ -1,0 +1,39 @@
+name: Default
+description: Full sweep — recon, probe, deep scan, all tools in parallel
+target_types: [domain, ip, url]
+scope_required: false
+
+stages:
+  - name: recon
+    tools: [subfinder, assetfinder]
+    parallel: true
+    options:
+      subfinder:
+        timeout: 120
+
+  - name: probe
+    tools: [httpx]
+    parallel: true
+    options:
+      httpx:
+        threads: 50
+
+  - name: deep-scan
+    tools: [nuclei, dalfox, ffuf, gitleaks, corsy]
+    parallel: true
+    options:
+      nuclei:
+        severity: "low,medium,high,critical"
+        rate_limit: 150
+      ffuf:
+        threads: 40
+        match_codes: "200,204,301,302,307,401,403,405,500"
+
+  - name: native
+    tools: [js-analyzer, param-miner, api-discoverer]
+    parallel: true
+
+output:
+  json: true
+  report: true
+  terminal: true

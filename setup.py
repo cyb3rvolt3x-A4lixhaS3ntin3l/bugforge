@@ -5,8 +5,8 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="bugforge",
-    version="2.0.0",
-    description="Bug bounty orchestration platform — web UI, tool orchestration, pipeline engine, recon, vulns, reports",
+    version="3.1.0",
+    description="Bug bounty intelligence platform — parallel scanning, attack chain correlation, custom pipelines, web UI",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="BugForge Contributors",
@@ -18,6 +18,8 @@ setup(
         "uvicorn[standard]>=0.24.0",
         "pydantic>=2.0.0",
         "websockets>=12.0",
+        "pyyaml>=6.0",
+        "bcrypt>=4.0.0",
     ],
     extras_require={
         "dev": ["pytest>=7.0", "pytest-asyncio>=0.23.0", "httpx"],
@@ -36,7 +38,6 @@ setup(
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Topic :: Security",
-        "Topic :: Software Development :: Testing",
     ],
     keywords="bug bounty, security, pentesting, recon, orchestration, subfinder, nuclei, ffuf, dalfox, sqlmap",
 )
