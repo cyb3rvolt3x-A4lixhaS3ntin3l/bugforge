@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gungnir v3.1 — FORGE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--purple:#bc8cff}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text)}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:0;flex-shrink:0}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border);font-size:1.2rem;font-weight:700;color:var(--accent)}
+.sidebar-header span{color:var(--text)}
+.nav-item{padding:12px 20px;cursor:pointer;border-left:3px solid transparent;transition:all .2s;font-size:.9rem}
+.nav-item:hover{background:var(--bg);border-left-color:var(--accent)}
+.nav-item.active{background:var(--bg);border-left-color:var(--accent);color:var(--accent)}
+.nav-item .icon{margin-right:8px}
+.main{flex:1;padding:24px;overflow-y:auto}
+.main h1{font-size:1.5rem;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px}
+.card h2{font-size:1.1rem;margin-bottom:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:6px;font-size:.85rem;color:var(--muted)}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.9rem}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent)}
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer}
+.btn-primary{background:var(--accent);color:#fff}.btn-green{background:var(--green);color:#fff}
+.btn-danger{background:var(--red);color:#fff}.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.btn:hover{opacity:.85}.btn-sm{padding:4px 12px;font-size:.75rem}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.stat .num{font-size:2rem;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:.8rem;color:var(--muted);margin-top:4px}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:12px 0}
+.progress-fill{height:100%;background:var(--green);width:0%;transition:width .3s}
+.tool-log{font-family:monospace;font-size:.8rem;line-height:1.6;max-height:300px;overflow-y:auto;background:var(--bg);border-radius:8px;padding:12px}
+.tool-log .line{padding:2px 0}.tool-log .ok{color:var(--green)}.tool-log .err{color:var(--red)}.tool-log .info{color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-size:.85rem}
+th{color:var(--muted);font-weight:600;font-size:.75rem;text-transform:uppercase}
+.sev{padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+.sev-critical{background:var(--red);color:#fff}.sev-high{background:var(--yellow);color:#000}
+.sev-medium{background:var(--accent);color:#fff}.sev-low{background:var(--green);color:#000}
+.sev-info{background:var(--border);color:var(--text)}
+.finding-item{background:var(--bg);border-radius:8px;padding:14px;margin-bottom:8px;border-left:3px solid var(--border)}
+.finding-item.critical{border-left-color:var(--red)}.finding-item.high{border-left-color:var(--yellow)}
+.finding-item.medium{border-left-color:var(--accent)}.finding-item.low{border-left-color:var(--green)}
+.chain-item{background:rgba(248,81,73,.1);border:1px solid var(--red);border-radius:8px;padding:14px;margin-bottom:10px}
+.user-badge{position:fixed;bottom:20px;left:240px;font-size:.8rem;color:var(--muted)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="layout">
+<div class="sidebar">
+<div class="sidebar-header">🐛 Bug<span>Forge</span></div>
+<div class="nav-item active" onclick="show('dashboard')" id="nav-dashboard"><span class="icon">📊</span>Dashboard</div>
+<div class="nav-item" onclick="show('hunt')" id="nav-hunt"><span class="icon">🚀</span>New Hunt</div>
+<div class="nav-item" onclick="show('findings')" id="nav-findings"><span class="icon">🔍</span>Findings</div>
+<div class="nav-item" onclick="show('pipelines')" id="nav-pipelines"><span class="icon">📋</span>Pipelines</div>
+<div class="nav-item" onclick="show('tools')" id="nav-tools"><span class="icon">🛠️</span>Tools</div>
+<div class="nav-item" onclick="show('history')" id="nav-history"><span class="icon">📅</span>History</div>
+<div class="nav-item" onclick="show('settings')" id="nav-settings"><span class="icon">⚙️</span>Settings</div>
+<div style="position:absolute;bottom:0;width:220px;padding:16px;border-top:1px solid var(--border)">
+<div style="font-size:.8rem;color:var(--muted)">User: {{USERNAME}}</div>
+<button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="logout()">Logout</button>
+</div>
+</div>
+<div class="main">
+
+<!-- Dashboard -->
+<div id="view-dashboard">
+<h1>Dashboard</h1>
+<div class="stats">
+<div class="stat"><div class="num" id="stat-scans">0</div><div class="lbl">Total Scans</div></div>
+<div class="stat"><div class="num" id="stat-findings">0</div><div class="lbl">Findings</div></div>
+<div class="stat"><div class="num" id="stat-tools">0</div><div class="lbl">Tools Available</div></div>
+<div class="stat"><div class="num" id="stat-pipelines">0</div><div class="lbl">Pipelines</div></div>
+</div>
+<div class="card"><h2>Quick Launch</h2>
+<div class="form-group"><label>Target</label><input type="text" id="quick-target" placeholder="example.com"></div>
+<button class="btn btn-primary" onclick="quickHunt()">🚀 Hunt</button>
+</div>
+<div class="card"><h2>Recent Activity</h2><div id="recent-activity">Loading...</div></div>
+</div>
+
+<!-- New Hunt -->
+<div id="view-hunt" class="hidden">
+<h1>New Hunt</h1>
+<div class="card">
+<div class="form-group"><label>Target</label><input type="text" id="hunt-target" placeholder="example.com or IP or URL"></div>
+<div class="form-group"><label>Pipeline</label><select id="hunt-pipeline"></select></div>
+<div class="form-group"><label>Scope Brief (optional)</label><textarea id="hunt-scope" rows="4" placeholder="in_scope:&#10;  - *.example.com&#10;out_of_scope:&#10;  - *.staging.example.com"></textarea></div>
+<div style="display:flex;gap:16px;margin-bottom:16px">
+<label><input type="checkbox" id="hunt-verify" checked> Verify criticals</label>
+<label><input type="checkbox" id="hunt-native" checked> Run native modules</label>
+<label><input type="checkbox" id="hunt-notools"> Skip external tools</label>
+</div>
+<button class="btn btn-primary" onclick="startHunt()">🚀 Launch Hunt</button>
+</div>
+<div class="card hidden" id="hunt-progress">
+<h2>Live Progress</h2>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+<div class="tool-log" id="tool-log"></div>
+</div>
+</div>
+
+<!-- Findings -->
+<div id="view-findings" class="hidden">
+<h1>Findings</h1>
+<div class="card">
+<div style="display:flex;gap:12px;margin-bottom:16px">
+<input type="text" id="findings-target" placeholder="Filter by target..." style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+<select id="findings-severity" style="padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text)">
+<option value="">All severities</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+</select>
+<button class="btn btn-secondary" onclick="loadFindings()">Filter</button>
+</div>
+<div id="findings-list"></div>
+</div>
+</div>
+
+<!-- Pipelines -->
+<div id="view-pipelines" class="hidden">
+<h1>Pipelines</h1>
+<div class="card"><h2>Available Pipelines</h2><div id="pipelines-list">Loading...</div></div>
+<div class="card"><h2>Create Pipeline</h2>
+<div class="form-group"><label>Name</label><input type="text" id="pipe-name" placeholder="My Pipeline"></div>
+<div class="form-group"><label>Description</label><input type="text" id="pipe-desc"></div>
+<div class="form-group"><label>Stages (YAML)</label><textarea id="pipe-stages" rows="8" style="font-family:monospace" placeholder="- name: recon&#10;  tools: [subfinder]&#10;  parallel: true&#10;- name: scan&#10;  tools: [nuclei]"></textarea></div>
+<button class="btn btn-green" onclick="createPipeline()">Create Pipeline</button>
+</div>
+</div>
+
+<!-- Tools -->
+<div id="view-tools" class="hidden">
+<h1>Tools</h1>
+<div class="card"><h2>Builtin Tools</h2><div id="builtin-tools">Loading...</div></div>
+<div class="card"><h2>Native Modules</h2><div id="native-tools"></div></div>
+<div class="card"><h2>Custom Tools</h2><div id="custom-tools">Loading...</div>
+<h3 style="margin-top:20px">Register Custom Tool</h3>
+<div class="form-group"><label>Name</label><input type="text" id="ct-name" placeholder="my-scanner"></div>
+<div class="form-group"><label>Binary path</label><input type="text" id="ct-binary" placeholder="/path/to/tool"></div>
+<div class="form-group"><label>Category</label><select id="ct-category"><option value="recon">Recon</option><option value="vuln_scan">Vuln Scan</option><option value="xss">XSS</option><option value="discovery">Discovery</option></select></div>
+<div class="form-group"><label>Command template</label><input type="text" id="ct-command" placeholder="{binary} --target {target} --json"></div>
+<div class="form-group"><label>Parser</label><select id="ct-parser"><option value="json">JSON</option><option value="line-by-line">Line by line</option><option value="none">None</option></select></div>
+<button class="btn btn-green" onclick="registerTool()">Register Tool</button>
+</div>
+</div>
+
+<!-- History -->
+<div id="view-history" class="hidden">
+<h1>Scan History</h1>
+<div class="card"><div id="history-list">Loading...</div></div>
+</div>
+
+<!-- Settings -->
+<div id="view-settings" class="hidden">
+<h1>Settings</h1>
+<div class="card"><h2>Configuration</h2><div id="settings-content">Loading...</div></div>
+<div class="card"><h2>Change Password</h2>
+<div class="form-group"><label>Current password</label><input type="password" id="pw-old"></div>
+<div class="form-group"><label>New password</label><input type="password" id="pw-new"></div>
+<button class="btn btn-secondary" onclick="changePassword()">Change Password</button>
+</div>
+</div>
+
+</div>
+</div>
+<script>
+function show(view){
+document.querySelectorAll('[id^="view-"]').forEach(e=>e.classList.add('hidden'));
+document.getElementById('view-'+view).classList.remove('hidden');
+document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+document.getElementById('nav-'+view).classList.add('active');
+if(view==='dashboard')loadDashboard();
+if(view==='hunt')loadPipelines();
+if(view==='findings')loadFindings();
+if(view==='pipelines')loadPipelinesView();
+if(view==='tools')loadTools();
+if(view==='history')loadHistory();
+if(view==='settings')loadSettings();
+}
+
+async function api(url,opts={}){
+opts.headers=opts.headers||{};
+if(!opts.headers['Content-Type']&&opts.body)opts.headers['Content-Type']='application/json';
+const r=await fetch(url,opts);
+if(r.status===401){window.location='/login';return null}
+return r.json();
+}
+
+// Dashboard
+async function loadDashboard(){
+const tools=await api('/api/tools');const pipes=await api('/api/pipelines');
+document.getElementById('stat-tools').textContent=tools?tools.builtin.filter(t=>t.installed).length+tools.native.length:0;
+document.getElementById('stat-pipelines').textContent=pipes?pipes.pipelines.length:0;
+document.getElementById('stat-scans').textContent='—';document.getElementById('stat-findings').textContent='—';
+}
+async function quickHunt(){const t=document.getElementById('quick-target').value;if(!t){alert('Enter target');return}
+document.getElementById('hunt-target').value=t;show('hunt');startHunt()}
+
+// Hunt
+async function loadPipelines(){
+const d=await api('/api/pipelines');const sel=document.getElementById('hunt-pipeline');
+if(!d)return;sel.innerHTML=d.pipelines.map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+}
+async function startHunt(){
+const target=document.getElementById('hunt-target').value;if(!target){alert('Enter target');return}
+const body={target,pipeline:document.getElementById('hunt-pipeline').value,
+scope:document.getElementById('hunt-scope').value||undefined,
+no_tools:document.getElementById('hunt-notools').checked,
+no_verify:!document.getElementById('hunt-verify').checked};
+document.getElementById('hunt-progress').classList.remove('hidden');
+document.getElementById('tool-log').innerHTML='';
+document.getElementById('progress-fill').style.width='0%';
+const r=await api('/api/hunt',{method:'POST',body:JSON.stringify(body)});
+if(!r)return;connectWS(r.run_id);
+}
+function connectWS(runId){
+const proto=location.protocol==='https:'?'wss:':'ws:';
+const ws=new WebSocket(`${proto}//${location.host}/ws/hunt/${runId}`);
+const log=document.getElementById('tool-log');
+ws.onmessage=e=>{const d=JSON.parse(e.data);
+if(d.type==='progress'){log.innerHTML+=`<div class="line info">[${d.tool}] ${d.message}</div>`;log.scrollTop=log.scrollHeight;
+const m=d.message.match(/(\d+)%/);if(m)document.getElementById('progress-fill').style.width=m[1]+'%';
+if(d.message.includes('✓')){const lines=log.querySelectorAll('.line');document.getElementById('progress-fill').style.width=Math.min(100,lines.length*15)+'%'}}
+else if(d.type==='completed'){log.innerHTML+=`<div class="line ok">✓ Completed — ${d.findings_count} findings</div>`;log.scrollTop=log.scrollHeight;
+document.getElementById('progress-fill').style.width='100%';displayResults(d)}
+else if(d.type==='error'){log.innerHTML+=`<div class="line err">✗ Error: ${d.message}</div>`}
+};
+ws.onclose=()=>{};
+}
+function displayResults(d){
+const log=document.getElementById('tool-log');
+log.innerHTML+=`<div class="line ok">═ Results ═</div>`;
+if(d.attack_chains){d.attack_chains.forEach(c=>{log.innerHTML+=`<div class="line err">🔴 CHAIN: ${c.title} (${c.confidence})</div>`})};
+if(d.findings){d.findings.slice(0,20).forEach(f=>{log.innerHTML+=`<div class="line"> ${f.severity.toUpperCase()} ${f.title} — ${f.asset}</div>`})};
+if(d.diff){log.innerHTML+=`<div class="line info">Diff: ${d.diff.new} NEW | ${d.diff.resolved} RESOLVED | ${d.diff.recurring} recurring</div>`}
+}
+
+// Findings
+async function loadFindings(){
+const target=document.getElementById('findings-target').value;
+const sev=document.getElementById('findings-severity').value;
+let url='/api/findings?';if(target)url+=`target=${target}&`;if(sev)url+=`severity=${sev}`;
+const d=await api(url);if(!d)return;const el=document.getElementById('findings-list');
+if(!d.findings.length){el.innerHTML='<p style="color:var(--muted)">No findings</p>';return}
+el.innerHTML=d.findings.map(f=>`<div class="finding-item ${f.severity}"><div style="display:flex;justify-content:space-between">
+<span class="sev sev-${f.severity}">${f.severity}</span><span style="color:var(--muted);font-size:.8rem">${f.source}</span></div>
+<div style="margin-top:6px"><strong>${f.title}</strong></div><div style="color:var(--muted);font-size:.85rem">Asset: ${f.asset||'—'}</div>
+${f.url?`<div style="font-size:.8rem;color:var(--accent)">${f.url.substring(0,80)}</div>`:''}</div>`).join('');
+}
+
+// Pipelines
+async function loadPipelinesView(){
+const d=await api('/api/pipelines');if(!d)return;const el=document.getElementById('pipelines-list');
+el.innerHTML=d.pipelines.map(p=>`<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between">
+<strong>${p.name}</strong><button class="btn btn-danger btn-sm" onclick="deletePipeline('${p.name}')">Delete</button></div>
+<div style="color:var(--muted);font-size:.85rem;margin:4px 0">${p.description}</div>
+<div style="font-size:.8rem">Stages: ${p.stages.map(s=>s.name).join(' → ')}</div></div>`).join('');
+}
+async function createPipeline(){
+const stagesYaml=document.getElementById('pipe-stages').value;
+let stages;try{stages=yaml.parse(stagesYaml)}catch(e){stages=stagesYaml.split('\n').filter(l=>l.trim()).map(l=>({name:l.replace(/[-:]/g,'').trim(),tools:[],parallel:true}))}
+const body={name:document.getElementById('pipe-name').value,description:document.getElementById('pipe-desc').value,stages:stages};
+const r=await api('/api/pipelines',{method:'POST',body:JSON.stringify(body)});
+if(r)alert('Pipeline created');loadPipelinesView();
+}
+async function deletePipeline(name){if(!confirm(`Delete pipeline "${name}"?`))return;await api(`/api/pipelines/${name}`,{method:'DELETE'});loadPipelinesView()}
+
+// Tools
+async function loadTools(){
+const d=await api('/api/tools');if(!d)return;
+document.getElementById('builtin-tools').innerHTML=d.builtin.map(t=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+<span>${t.installed?'✓':'✗'} ${t.name}</span><span style="color:var(--muted)">${t.name}</span>
+${t.installed?'':`<button class="btn btn-secondary btn-sm" onclick="installTool('${t.name}')">Install</button>`}</div>`).join('');
+document.getElementById('native-tools').innerHTML=d.native.map(t=>`<div style="padding:8px 0">✓ ${t.name} — ${t.description}</div>`).join('');
+document.getElementById('custom-tools').innerHTML=d.custom.length?d.custom.map(t=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+<span>${t.name} <span style="color:var(--muted)">(${t.category})</span></span><button class="btn btn-danger btn-sm" onclick="removeTool('${t.name}')">Remove</button></div>`).join(''):'<p style="color:var(--muted)">No custom tools</p>';
+}
+async function installTool(name){await api(`/api/tools/${name}/install`,{method:'POST'});loadTools()}
+async function registerTool(){
+const body={name:document.getElementById('ct-name').value,binary:document.getElementById('ct-binary').value,
+category:document.getElementById('ct-category').value,command:document.getElementById('ct-command').value,
+parser:document.getElementById('ct-parser').value};
+const r=await api('/api/tools',{method:'POST',body:JSON.stringify(body)});if(r)alert('Tool registered');loadTools()}
+async function removeTool(name){await api(`/api/tools/${name}`,{method:'DELETE'});loadTools()}
+
+// History
+async function loadHistory(){const d=await api('/api/history');if(!d)return;document.getElementById('history-list').innerHTML=d.history.length?d.history.map(h=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)">${h.target} — ${new Date(h.completed_at*1000).toLocaleString()} — ${h.findings_count} findings</div>`).join(''):'<p style="color:var(--muted)">No history</p>'}
+
+// Settings
+async function loadSettings(){const d=await api('/api/settings');if(!d)return;
+document.getElementById('settings-content').innerHTML=`<pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:.85rem">${JSON.stringify(d,null,2)}</pre>`}
+async function changePassword(){
+const body={username:'{{USERNAME}}',old_password:document.getElementById('pw-old').value,new_password:document.getElementById('pw-new').value};
+const r=await api('/api/auth/password',{method:'POST',body:JSON.stringify(body)});if(r)alert('Password changed')}
+async function logout(){await api('/api/auth/logout',{method:'POST'});window.location='/login'}
+
+// Init
+loadDashboard();
+</script>
+</body>
+</html>
