@@ -59,7 +59,7 @@ class BinaryManager:
         os.makedirs(bin_dir, exist_ok=True)
         # Ensure bin_dir is in PATH
         if bin_dir not in os.environ.get("PATH", ""):
-            os.environ[PATH_ENV] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+            os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
 
     def is_available(self, name: str) -> bool:
         """Check if a tool binary is available."""

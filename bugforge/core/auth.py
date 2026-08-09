@@ -5,7 +5,7 @@ Simple, secure, local. No external auth service.
 Usage:
     auth = AuthManager("~/.bugforge/auth.json")
     auth.setup("researcher", "password123")     # initial setup
-    if auth.verify("researcher", "password123")9 9 9 9 9 9 9 9 9 9 # verify login
+    if auth.verify("researcher", "password123"): # verify login
         session = auth.create_session("researcher")
         # session.token is the session cookie value
         # session.api_key is the API key for programmatic access
