@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 import time
 
@@ -23,12 +24,15 @@ from .reporting.report import ReportBuilder, ReportTemplate
 from .reporting.cvss import Cvss31, CvssVector
 from .scope.validator import parse_brief
 from .utils.colors import c, Colors
+from .core.pipelines import PipelineLoader
+from .core.custom_tools import CustomToolLoader
+from .core.auth import AuthManager
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="bugforge",
-        description="BugForge v3 — APEX: Parallel bug bounty intelligence platform",
+        description="BugForge v3.1 — FORGE: Parallel bug bounty intelligence platform with custom pipelines",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"bugforge {__version__}")
@@ -41,16 +45,30 @@ def main(argv=None) -> int:
     h.add_argument("--scope", help="Scope brief file")
     h.add_argument("--no-tools", action="store_true", help="Only run native modules (no external tools)")
     h.add_argument("--no-verify", action="store_true", help="Skip verification of criticals")
+    h.add_argument("--pipeline", help="Pipeline name to use (default: Default)")
     h.add_argument("--json", help="Output JSON to file")
     h.add_argument("--report", help="Output Markdown report to file")
 
     # tools
-    t = sub.add_parser("tools", help="Manage tool binaries")
+    t = sub.add_parser("tools", help="Manage tool binaries and custom tools")
     ts = t.add_subparsers(dest="tools_cmd", required=True)
     ts.add_parser("list", help="List all tools and status")
     ti = ts.add_parser("install", help="Install a specific tool")
     ti.add_argument("name")
     ts.add_parser("install-all", help="Install all tools")
+    ta = ts.add_parser("add", help="Register a custom tool")
+    ta.add_argument("name")
+    ta.add_argument("--binary", required=True)
+    ta.add_argument("--category", default="vuln_scan")
+    ta.add_argument("--command", default="")
+    ta.add_argument("--parser", default="none")
+    ta.add_argument("--timeout", type=int, default=120)
+    tr = ts.add_parser("remove", help="Remove a custom tool")
+    tr.add_argument("name")
+    tt = ts.add_parser("test", help="Test a tool against a target")
+    tt.add_argument("name")
+    tt.add_argument("--target", required=True)
+    ts.add_parser("list-custom", help="List custom tools only")
 
     # scope
     sc = sub.add_parser("scope", help="Validate scope")
@@ -60,6 +78,28 @@ def main(argv=None) -> int:
     # history
     hist = sub.add_parser("history", help="Show scan history for a target")
     hist.add_argument("target")
+
+    # pipelines
+    pl = sub.add_parser("pipelines", help="Manage custom pipelines")
+    pls = pl.add_subparsers(dest="pipelines_cmd", required=True)
+    pls.add_parser("list", help="List all pipelines")
+    plss = pls.add_parser("show", help="Show pipeline details")
+    plss.add_argument("name")
+    plsd = pls.add_parser("delete", help="Delete a pipeline")
+    plsd.add_argument("name")
+
+    # auth
+    au = sub.add_parser("auth", help="Authentication management")
+    aus = au.add_subparsers(dest="auth_cmd", required=True)
+    aus.add_parser("setup", help="Set up authentication (first time)")
+    aus.add_parser("password", help="Change password")
+    aus.add_parser("status", help="Check auth status")
+
+    # serve
+    sv = sub.add_parser("serve", help="Start the BugForge web UI server")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8888)
+    sv.add_argument("--no-browser", action="store_true")
 
     args = parser.parse_args(argv)
 
@@ -71,6 +111,12 @@ def main(argv=None) -> int:
         return _cmd_scope(args)
     elif args.command == "history":
         return _cmd_history(args)
+    elif args.command == "pipelines":
+        return _cmd_pipelines(args)
+    elif args.command == "auth":
+        return _cmd_auth(args)
+    elif args.command == "serve":
+        return _cmd_serve(args)
 
     return 0
 
@@ -80,7 +126,7 @@ async def _cmd_hunt(args) -> int:
     target = args.target.strip()
     target_type = detect_target_type(target)
 
-    print(f"\n{c('╔════════════════════════════════════════════════╗', Colors.CYAN)}")
+    print(f"\n{c('╔══════════════════════════════════════════════╗', Colors.CYAN)}")
     print(f"{c('║  BUGFORGE v3 — APEX', Colors.BOLD)}{'':>27}{c('║', Colors.CYAN)}")
     print(f"{c('║', Colors.CYAN)} Target: {target} ({target_type.value}){'':>{36-len(target)-len(target_type.value)}}{c('║', Colors.CYAN)}")
 
@@ -92,11 +138,11 @@ async def _cmd_hunt(args) -> int:
         status = c("validated ✓", Colors.GREEN) if ok else c("BLOCKED ✗", Colors.RED)
         print(f"{c('║', Colors.CYAN)} Scope: {status}{'':>{43-len(status)-8}}{c('║', Colors.CYAN)}")
         if not ok:
-            print(f"{c('╚════════════════════════════════════════════════╝', Colors.CYAN)}")
+            print(f"{c('╚══════════════════════════════════════════════╝', Colors.CYAN)}")
             print(f"\n{c('[BLOCKED]', Colors.RED)} {reason}")
             return 2
 
-    print(f"{c('╚════════════════════════════════════════════════╝', Colors.CYAN)}\n")
+    print(f"{c('╚══════════════════════════════════════════════╝', Colors.CYAN)}\n")
 
     # Setup
     bm = BinaryManager(str(config.bin_dir))
@@ -226,9 +272,9 @@ async def _cmd_hunt(args) -> int:
 
 def _print_results(findings, chains, diff, scan_result):
     """Print colorized results to terminal."""
-    print(f"\n{c('═══════════════════════════════════════════════════', Colors.BOLD)}")
+    print(f"\n{c('══════════════════════════════════════════════════', Colors.BOLD)}")
     print(f"  {c('RESULTS', Colors.BOLD)} — {len(findings)} actionable findings, {len(chains)} attack chains")
-    print(f"{c('═══════════════════════════════════════════════════', Colors.BOLD)}\n")
+    print(f"{c('══════════════════════════════════════════════════', Colors.BOLD)}\n")
 
     # Attack chains first
     if chains:
@@ -277,12 +323,12 @@ def _print_results(findings, chains, diff, scan_result):
 
     # Diff
     if diff.new or diff.resolved or diff.recurring:
-        print(f"{c('═══════════════════════════════════════════════════', Colors.BOLD)}")
+        print(f"{c('══════════════════════════════════════════════════', Colors.BOLD)}")
         print(f"  {c('DIFF vs last run', Colors.CYAN)}")
         print(f"  {c(str(len(diff.new)), Colors.GREEN)} NEW"
               f" | {c(str(len(diff.resolved)), Colors.YELLOW)} RESOLVED"
               f" | {c(str(len(diff.recurring)), Colors.GREY)} recurring")
-        print(f"{c('═══════════════════════════════════════════════════', Colors.BOLD)}\n")
+        print(f"{c('══════════════════════════════════════════════════', Colors.BOLD)}\n")
 
 
 def _finding_to_dict(f: Finding) -> dict:
@@ -383,6 +429,54 @@ def _cmd_tools(args) -> int:
         print(f"\n{c('Installed:', Colors.BOLD)} {installed}/{len(results)}")
         return 0
 
+    elif args.tools_cmd == "add":
+        loader = CustomToolLoader(str(config.home_dir / "tools"))
+        path = loader.register(args.name, f"Custom tool: {args.name}", args.category,
+                               args.binary, args.command, args.parser, args.timeout)
+        print(f"{c('[+]', Colors.GREEN)} Custom tool '{args.name}' registered at {path}")
+        return 0
+
+    elif args.tools_cmd == "remove":
+        loader = CustomToolLoader(str(config.home_dir / "tools"))
+        if loader.delete(args.name):
+            print(f"{c('[+]', Colors.GREEN)} Removed custom tool: {args.name}")
+            return 0
+        else:
+            print(f"{c('[!]', Colors.RED)} Custom tool not found: {args.name}")
+            return 1
+
+    elif args.tools_cmd == "test":
+        loader = CustomToolLoader(str(config.home_dir / "tools"))
+        loader.load_all()
+        tool = loader.get(args.name)
+        if not tool:
+            print(f"{c('[!]', Colors.RED)} Tool not found: {args.name}")
+            return 1
+        import subprocess
+        cmd = loader.build_command(tool, args.target, {})
+        print(f"{c('[*]', Colors.CYAN)} Testing: {' '.join(cmd)}")
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=tool.timeout)
+            findings = loader.parse_output(tool, r.stdout)
+            print(f"{c('[+]', Colors.GREEN)} {len(findings)} findings")
+            for f in findings[:10]:
+                print(f"  {f}")
+        except Exception as e:
+            print(f"{c('[!]', Colors.RED)} Error: {e}")
+        return 0
+
+    elif args.tools_cmd == "list-custom":
+        loader = CustomToolLoader(str(config.home_dir / "tools"))
+        tools = loader.load_all()
+        if not tools:
+            print("No custom tools registered")
+            return 0
+        print(f"\n{c('Custom Tools', Colors.BOLD)}\n")
+        for name, tool in tools.items():
+            available = "✓" if tool.binary and os.path.isfile(tool.binary) else "✗"
+            print(f"  {available} {name:<20} {tool.category:<15} {tool.binary or '(no binary)'}")
+        return 0
+
     return 1
 
 
@@ -411,6 +505,116 @@ def _cmd_history(args) -> int:
     for run in history:
         print(f"  Run {run['id']}  {time.strftime('%Y-%m-%d %H:%M', time.localtime(run['completed_at']))}"
               f"  {run['assets_found']} assets  {run['findings_count']} findings")
+    return 0
+
+
+# ─── Pipeline commands ───
+
+def _cmd_pipelines(args) -> int:
+    config = get_config()
+    loader = PipelineLoader(str(config.home_dir / "pipelines"))
+
+    if args.pipelines_cmd == "list":
+        pipes = loader.load_all()
+        print(f"\n{c('BugForge Pipelines', Colors.BOLD)}\n")
+        for name, pdef in pipes.items():
+            stages = " → ".join(s.name for s in pdef.stages)
+            print(f"  {c(name, Colors.CYAN):<25} {stages}")
+            if pdef.description:
+                print(f"    {c(pdef.description, Colors.GREY)}")
+        print(f"\n{len(pipes)} pipelines available")
+        return 0
+
+    elif args.pipelines_cmd == "show":
+        pdef = loader.get(args.name)
+        if not pdef:
+            print(f"{c('[!]', Colors.RED)} Pipeline not found: {args.name}")
+            return 1
+        print(f"\n{c(pdef.name, Colors.BOLD)}")
+        print(f"  Description: {pdef.description}")
+        print(f"  Target types: {', '.join(pdef.target_types)}")
+        print(f"  Scope required: {pdef.scope_required}")
+        print(f"\n  {c('Stages:', Colors.BOLD)}")
+        for i, s in enumerate(pdef.stages, 1):
+            tools = ", ".join(s.tools) if s.tools else "(none)"
+            mode = "parallel" if s.parallel else "sequential"
+            print(f"    {i}. {s.name} [{mode}] — tools: {tools}")
+            if s.condition:
+                print(f"       condition: {s.condition}")
+            if s.options:
+                print(f"       options: {json.dumps(s.options, indent=8)}")
+        return 0
+
+    elif args.pipelines_cmd == "delete":
+        if loader.delete(args.name):
+            print(f"{c('[+]', Colors.GREEN)} Deleted pipeline: {args.name}")
+            return 0
+        else:
+            print(f"{c('[!]', Colors.RED)} Cannot delete (built-in or not found): {args.name}")
+            return 1
+
+    return 1
+
+
+# ─── Auth commands ───
+
+def _cmd_auth(args) -> int:
+    config = get_config()
+    auth = AuthManager(str(config.home_dir / "auth.json"))
+
+    if args.auth_cmd == "setup":
+        if auth.is_configured():
+            print(f"{c('[!]', Colors.YELLOW)} Auth already configured. Use 'bugforge auth password' to change.")
+            return 1
+        import getpass
+        username = input("Enter username: ").strip()
+        if not username:
+            print("Username required")
+            return 1
+        password = getpass.getpass("Enter password (6+ chars): ")
+        confirm = getpass.getpass("Confirm password: ")
+        if password != confirm:
+            print("Passwords don't match")
+            return 1
+        if auth.setup(username, password):
+            print(f"{c('[+]', Colors.GREEN)} Auth configured. Web UI ready.")
+            print(f"  Run: bugforge serve")
+            return 0
+        else:
+            print(f"{c('[!]', Colors.RED)} Setup failed")
+            return 1
+
+    elif args.auth_cmd == "password":
+        if not auth.is_configured():
+            print(f"{c('[!]', Colors.RED)} Auth not configured. Run 'bugforge auth setup' first.")
+            return 1
+        import getpass
+        username = input("Username: ").strip()
+        old = getpass.getpass("Current password: ")
+        new = getpass.getpass("New password (6+ chars): ")
+        if auth.change_password(username, old, new):
+            print(f"{c('[+]', Colors.GREEN)} Password changed")
+            return 0
+        else:
+            print(f"{c('[!]', Colors.RED)} Password change failed")
+            return 1
+
+    elif args.auth_cmd == "status":
+        if auth.is_configured():
+            print(f"{c('[+]', Colors.GREEN)} Auth configured")
+            return 0
+        else:
+            print(f"{c('[!]', Colors.YELLOW)} Auth not configured. Run 'bugforge auth setup' to enable login.")
+            return 1
+
+    return 1
+
+
+# ─── Serve command ───
+
+def _cmd_serve(args) -> int:
+    from .web.app import serve
+    serve(host=args.host, port=args.port, no_browser=args.no_browser)
     return 0
 
 
