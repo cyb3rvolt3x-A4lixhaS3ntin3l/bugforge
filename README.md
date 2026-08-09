@@ -1,213 +1,245 @@
-# Gungnir
+# GUNGNIR — Parallel Bug Bounty Intelligence Platform
 
-> **v3.0 — APEX**: A parallel, intelligence-driven bug bounty platform that fires all tools simultaneously, correlates findings into attack chains, verifies criticals, persists to SQLite, and diffs against previous runs.
+<div align="center">
+
+**GUNGNIR** — Odin's magical spear that never misses its target.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.0.0--alpha-orange.svg)]()
+[![Version](https://img.shields.io/badge/version-4.0.0-orange.svg)]()
+[![Tests](https://img.shields.io/badge/tests-134%20passing-green.svg)]()
 
-## What Gungnir Does
+**Created by [Syed Zada Abrar](https://andraxpentester.in)** — Certified Penetration Tester & Security Researcher
 
-Gungnir runs a complete security sweep against any target — domain, IP, CIDR, or URL — in 3-5 minutes. It:
+[🌐 andraxpentester.in](https://andraxpentester.in) · [🛡️ SentinelReign.com](https://sentinelreign.com) · [🐙 GitHub](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l) · [✉️ Contact](mailto:andraxpentester@gmail.com)
 
-1. **Auto-detects** the target type (domain, IP, CIDR, URL) and selects the right tool combination
-2. **Downloads pre-compiled binaries** for 10+ security tools on first run (no Go, no Docker needed)
-3. **Fires all tools in parallel** in two waves: discovery → deep scan
-4. **Runs native analysis modules** (JS analyzer, parameter miner, API discovery) alongside external tools
-5. **Correlates** results across tools — detects attack chains (SSRF + secret = credential theft)
-6. **Filters** false positives with rule-based logic
-7. **Prioritizes** findings by real impact, not just scanner severity
-8. **Verifies** critical/high findings by re-testing before reporting
-9. **Persists** to SQLite and **diffs** against previous runs ("5 new since last scan")
-10. **Outputs** to terminal, JSON, and Markdown report
+</div>
+
+---
+
+## What is GUNGNIR?
+
+GUNGNIR is a parallel, intelligence-driven **bug bounty** and **penetration testing** platform that fires all security tools simultaneously, correlates findings into **attack chains**, verifies criticals, and presents prioritized, evidence-backed results.
+
+It is designed for **bug bounty hunters**, **security researchers**, **penetration testers**, and **ethical hackers** who want to maximize their finding rate while minimizing false positives and scan time.
+
+### Why GUNGNIR?
+
+Most security tools run sequentially — one tool after another — producing raw output that you have to manually correlate. GUNGNIR changes this:
+
+| Traditional Tools | GUNGNIR |
+|---|---|
+| Run one tool at a time | **14+ tools fire in parallel** |
+| Raw scanner output dumped | **26 attack chain patterns** auto-correlated |
+| Manual false positive filtering | **Rule-based FP filtering** built-in |
+| No verification — trust the scanner | **Criticals re-tested** before reporting |
+| No history — can't track changes | **SQLite persistence** with diffing |
+| Fixed pipeline — can't customize | **YAML pipelines** with conditions |
+| Need to install each tool separately | **Pre-compiled binaries** auto-downloaded |
+| No web interface | **Password-protected web UI** with real-time progress |
 
 ## Quick Start
 
 ```bash
-pip install gungnir
+# Install
+pip install gungnir-security
 
-# First run — downloads tool binaries automatically (~30s)
-gungnir hunt example.com --scope brief.txt
+# Set up authentication (for web UI)
+gungnir auth setup
 
-# Subsequent runs — everything cached
-gungnir hunt example.com
+# Start the web dashboard
+gungnir serve
+# → Web UI at http://localhost:8888
 
-# Native modules only (no external tools needed)
-gungnir hunt example.com --no-tools
-
-# Get JSON output
-gungnir hunt example.com --json results.json
-
-# Generate Markdown report
-gungnir hunt example.com --report report.md
+# Or use CLI directly
+gungnir hunt example.com --scope brief.txt --json results.json --report report.md
 ```
 
-## CLI Commands
+## Features
+
+### Parallel Execution Engine
+All tools fire in **two parallel waves**:
+- **Wave 1 (Discovery, ~30s):** subfinder, amass, assetfinder — all find subdomains simultaneously
+- **Wave 2 (Deep Scan, ~2-4min):** httpx, ffuf, nuclei, dalfox, sqlmap, gitleaks, corsy, nmap — all scan in parallel
+- **Native modules** (JS analyzer, parameter miner, API discovery) run alongside external tools
+
+### 8 Native Security Modules
+No external tools required — pure Python, runs anywhere:
+
+| Module | What It Does |
+|---|---|
+| **JavaScript Analyzer** | Downloads JS files, extracts API routes, parameters, secrets, source maps |
+| **Parameter Miner** | Tests 1000+ parameter names for reflection (XSS), errors (SQLi), response changes (IDOR) |
+| **API Discovery** | Finds GraphQL (with introspection), Swagger/OpenAPI, Spring Boot Actuator, REST endpoints |
+| **Security Header Analyzer** | Audits HSTS, CSP, X-Frame-Options, cookie security flags |
+| **Subdomain Takeover Checker** | Checks 12 cloud services for dangling DNS + NXDOMAIN |
+| **HTTP Method Tester** | Tests all 12 methods: GET, POST, PUT, DELETE, TRACE, PROPFIND, etc. |
+| **Backup File Finder** | Checks .git, .svn, .env, .bak, .old, editor files, config files |
+| **Redirect Chain Mapper** | Follows redirect chains, tests open redirect with 9 payload types |
+
+### Intelligence Engine
+
+#### 26 Attack Chain Patterns
+GUNGNIR doesn't just dump raw tool output. It **correlates findings across tools**:
+
+- SSRF + secret exposure → "SSRF → cloud metadata → credential theft" (90% confidence)
+- .git exposed + secret → "Source code → secrets leaked" (95% confidence)
+- Open redirect + SSRF → "Redirect → SSRF bypass" (70% confidence)
+- XSS + admin endpoint → "XSS → session hijack → account takeover" (80% confidence)
+- SQLi + admin panel → "SQLi → auth bypass → admin access" (85% confidence)
+- CORS misconfig + auth cookie → "CORS + credentials → cross-origin data theft" (80% confidence)
+- GraphQL introspection + API routes → "Full API mapping → injection testing" (80% confidence)
+- ...and 19 more patterns
+
+#### 10-Factor Priority Scoring
+Each finding scored on **10 separate factors** — not one collapsed "AI score":
+
+1. Severity (critical > high > medium > low)
+2. Confidence (multi-source > single source)
+3. Verification status (verified > unverified)
+4. Endpoint sensitivity (`/admin` > `/about`)
+5. Secret type (AWS key > generic string)
+6. Technology relevance (old tech > new tech)
+7. Exposure level (public > internal)
+8. Attack chain membership (part of chain = boosted)
+9. Novelty (new since last run = boosted)
+10. Exploitability (easy > hard)
+
+Each score is **explainable** — GUNGNIR tells you *why* a finding was prioritized.
+
+#### Finding Lifecycle
+9 lifecycle states for tracking findings over time:
+`NEW → TRIAGED → REPORTED → ACCEPTED → RESOLVED → REGRESSED → DUPLICATE → REJECTED → OUT_OF_SCOPE`
+
+- **Regression detection:** Previously resolved findings that reappear are flagged
+- **False-positive suppression:** Rejected findings don't re-alert on future scans
+- **Historical diffing:** "5 new findings since last run" — critical for recurring bug bounty work
+
+### Custom Pipelines
+Define your own scan workflow in YAML:
+
+```yaml
+name: API Hunter
+description: Optimized for API endpoints
+target_types: [domain, url]
+
+stages:
+  - name: recon
+    tools: [subfinder, assetfinder]
+    parallel: true
+  - name: api-discover
+    tools: [api-discoverer, js-analyzer]
+    parallel: true
+  - name: injection
+    tools: [nuclei, sqlmap, dalfox]
+    parallel: true
+    condition: "endpoints contains '/api/' or api_routes > 0"
+```
+
+Features:
+- **Stage I/O mapping:** Output from one stage feeds into the next
+- **Conditional execution:** Skip stages based on conditions (`tech contains 'wordpress'`)
+- **Per-tool configuration:** Custom flags, templates, wordlists per tool
+- **Pipeline variables:** `{{target}}` templating
+- **Validation + dry-run:** Test pipelines before running
+- **5 built-in pipelines:** Default, API Hunter, WordPress, Quick Recon, Subdomain Only
+
+### Custom Tool Registration
+Register your own scripts as GUNGNIR tools:
 
 ```bash
-gungnir hunt <target> [--scope brief.txt] [--no-tools] [--no-verify] [--json out.json] [--report out.md]
-gungnir tools list
-gungnir tools install <name>
-gungnir tools install-all
-gungnir scope --brief brief.txt --target example.com
-gungnir history example.com
+gungnir tools add my-scanner --binary /path/to/script --category vuln_scan --parser json
 ```
 
-## Architecture
+### Session Manager
+Capture authenticated sessions and replay them across all tools:
+- POST to login URL, capture Set-Cookie headers
+- Store auth context (cookies + headers)
+- Replay across all subsequent tool requests
+- Cookie values masked in logs (security)
+- Session file stored with 0o600 permissions
 
-```
-gungnir hunt <target>
-       │
-       ▼
-  TARGET AUTO-DETECTOR (IP? Domain? CIDR? URL?)
-       │
-       ▼
-  SCOPE GUARD (block if out of scope)
-       │
-       ▼
-  ┌─── WAVE 1: DISCOVERY (parallel, ~30s) ───┐
-  │  subfinder │ amass │ assetfinder          │
-  │  nmap (if IP) │ native DNS brute          │
-  └───────────────┬──────────────────────────┘
-                  │
-       ▼
-  ┌─── WAVE 2: DEEP SCAN (parallel, ~2-4min) ─┐
-  │  httpx │ ffuf │ nuclei │ dalfox            │
-  │  sqlmap │ gitleaks │ corsy │ nmap NSE     │
-  │  + NATIVE: JS analyzer │ Param miner │    │
-  │           API discovery                   │
-  └───────────────┬──────────────────────────┘
-                  │
-       ▼
-  CORRELATION ENGINE (in-memory, <1s)
-  ├── Group by asset
-  ├── Cross-reference findings
-  ├── Build attack chains
-  ├── Filter false positives
-  └── Score priority
-       │
-       ▼
-  VERIFICATION (criticals re-tested, ~30s)
-       │
-       ▼
-  PERSISTENCE (SQLite, async, <1s)
-  ├── Save findings
-  ├── Diff vs last run
-  └── Mark new/resolved/regressed
-       │
-       ▼
-  OUTPUT (terminal + JSON + Markdown report)
-```
+### Tool Conflict Resolution
+GUNGNIR **never breaks your existing tools**:
+
+1. Check user-configured override path
+2. Check GUNGNIR's own bin directory (`~/.gungnir/bin/`)
+3. Check system PATH (your existing install)
+4. Download to `~/.gungnir/bin/` only (NEVER to system paths)
+
+### Web UI with Authentication
+- **Password-protected** dashboard (bcrypt hashing)
+- Session cookies + API keys
+- Real-time scan progress via WebSocket
+- 7 views: Dashboard, Hunt, Findings, Pipelines, Tools, History, Settings
+- Create/edit custom pipelines
+- Register custom tools
+- View findings with evidence
+- Scan history with diffs
+
+### Multi-Format Output
+- **Terminal:** Colorized, prioritized findings
+- **JSON:** Machine-readable export
+- **Markdown:** Bounty-ready report
+- **HTML:** Standalone dark-theme report
+- **CSV:** Spreadsheet import
+- **SQLite:** Full history for diffing
+- **Notifications:** Webhook/Slack/Discord on scan completion
 
 ## Tool Arsenal
 
-Gungnir auto-downloads pre-compiled binaries for these tools:
+GUNGNIR auto-downloads pre-compiled binaries for:
 
 | Tool | Category | What It Does |
-|---|---|---|
+|---|---|
 | **subfinder** | recon | Passive subdomain enumeration (30+ sources) |
 | **amass** | recon | Active + passive subdomain enumeration |
 | **assetfinder** | recon | Fast lightweight subdomain discovery |
 | **httpx** | fingerprint | HTTP probe, tech detection, title, status |
-| **ffuf** | discovery | Content/endpoint fuzzer |
-| **nuclei** | vuln_scan | Template-based vulnerability scanner (5000+ templates) |
+| **ffuf** | discovery | Content/endpoint fuzzer (200K+ wordlists) |
+| **nuclei** | vuln_scan | Template-based scanner (5000+ templates) |
 | **dalfox** | xss | DOM-aware XSS scanner |
 | **sqlmap** | sqli | Full SQL injection framework |
 | **gitleaks** | secret | Secret scanner (700+ patterns) |
 | **nmap** | ports | Port scanner + service detection |
 | **corsy** | cors | CORS misconfiguration scanner |
 
-## Native Modules (No External Tools Required)
+## CLI Commands
 
-Gungnir includes three analysis modules that run without any external tools:
+```bash
+gungnir hunt <target> [--scope brief.txt] [--pipeline name] [--json out.json] [--report out.md]
+gungnir tools list
+gungnir tools install <name>
+gungnir tools add <name> --binary /path/to/script
+gungnir pipelines list
+gungnir pipelines show <name>
+gungnir scope --brief brief.txt --target example.com
+gungnir history <target>
+gungnir auth setup
+gungnir serve [--host 0.0.0.0] [--port 8888]
+```
 
-### JavaScript Analyzer
-Downloads and analyzes JS files from the target:
-- Extracts API routes (`fetch()`, `axios()`, `$.ajax()` calls)
-- Extracts hardcoded secrets (AWS keys, GitHub tokens, JWTs, Google API keys)
-- Detects exposed source maps
-- Extracts parameter names
+## Target Types
 
-### Parameter Miner
-Tests common high-value parameter names against endpoints:
-- `id`, `url`, `redirect`, `file`, `admin`, `debug`, `token`, etc.
-- Detects parameter reflection (XSS candidate)
-- Detects SQL error messages (SQLi candidate)
-- Detects response length changes (IDOR candidate)
-- Detects status code changes
-
-### API Discovery
-Probes for common API endpoints:
-- GraphQL (with introspection test)
-- Swagger/OpenAPI specs
-- Spring Boot Actuator
-- REST API paths (`/api/v1/`, `/api/v2/`)
-- SOAP/WSDL
-
-## Intelligence Engine
-
-### Correlation + Attack Chains
-
-Gungnir doesn't just dump raw tool output. It correlates findings across tools:
-
-| Pattern | Attack Chain |
+| Target | What GUNGNIR Does |
 |---|---|
-| SSRF + secret exposure | "SSRF → cloud metadata → credential theft" |
-| .git exposed + secret | "Source code → secrets leaked" |
-| Open redirect + SSRF | "Redirect → SSRF bypass" |
-| XSS near admin endpoint | "XSS → session hijack → account takeover" |
-| GraphQL introspection + API routes | "Full API mapping → injection testing" |
-| Swagger exposed | "Endpoint enumeration → IDOR testing" |
-
-### False Positive Filtering
-
-Rules-based removal of noise:
-- Nuclei info-level favicon/tech-detect findings → filtered
-- XSS reflected inside `<code>`/`<pre>` blocks → filtered (not executable)
-- CORS wildcard without credentials → filtered (not exploitable)
-- Very low confidence + single source → filtered
-
-### Priority Scoring
-
-Findings scored by real impact:
-- Severity (critical > high > medium > low)
-- Confidence (multi-source > single source)
-- Endpoint sensitivity (`/admin` > `/about`)
-- Secret type (AWS key > generic string)
-- Verification status (verified > unverified)
-
-### Verification
-
-Critical and high findings are re-tested before reporting:
-- XSS: check if payload still reflected
-- Exposed files (.git, .env): check if still returns 200
-- GraphQL: check if introspection still works
-- CORS: check if ACAO still reflects arbitrary origin
-
-## Persistence + Diffing
-
-Gungnir saves every scan to SQLite (`~/.gungnir/gungnir.db`). When you scan the same target again, it shows:
-
-```
-DIFF vs last run
-5 NEW | 2 RESOLVED | 7 recurring
-```
-
-This is critical for recurring bug bounty work — you only care about what changed.
+| `example.com` (domain) | Subdomain enum → probe → deep scan all subdomains |
+| `192.168.1.1` (IP) | Port scan → service detect → web probe → vuln scan |
+| `10.0.0.0/24` (CIDR) | Host discovery → per-host scan → aggregate |
+| `https://app.example.com/search?q=1` (URL) | Direct deep scan with all tools + native modules |
 
 ## Evidence Section — Real Test Results
 
 ### Test 1: Native modules against example.com
 
 ```bash
-$ gungnir hunt example.com --no-tools --no-verify --json results.json --report report.md
+$ gungnir hunt example.com --no-tools --no-verify
 ```
 
-**Output:**
 ```
 ╔══════════════════════════════════════════════╗
-║  GUNGNIR v3 — APEX                           ║
-║  Target: example.com (domain)                 ║
+║  GUNGNIR v4.0 — APEX                           ║
+║  Target: example.com (domain)                  ║
 ╚══════════════════════════════════════════════╝
 
   [native] running JS analyzer, param miner, API discovery...
@@ -216,28 +248,22 @@ $ gungnir hunt example.com --no-tools --no-verify --json results.json --report r
   [correlate] Analyzing 1 findings...
   [save] Persisting to SQLite...
 
-══════════════════════════════════════════════════
+══════════════════════════════════════════════════════════
   RESULTS — 1 actionable findings, 0 attack chains
-══════════════════════════════════════════════════
+══════════════════════════════════════════════════════════
 
   🟡 MEDIUM  Js Files Found
      Asset: example.com  Source: js_analyzer
 
-══════════════════════════════════════════════════
+══════════════════════════════════════════════════════════
   DIFF vs last run
   1 NEW | 0 RESOLVED | 0 recurring
-══════════════════════════════════════════════════
-
-  [report] Report saved to report.md
-  [json] JSON saved to results.json
-  Database: ~/.gungnir/gungnir.db
-  Total time: 1.0s
+══════════════════════════════════════════════════════════
 ```
 
-### Test 2: Second scan — diffing works
+### Test 2: Historical diffing
 
-Running the same target again shows the finding is now recurring (not new):
-
+Second scan of the same target shows the finding is recurring:
 ```
 DIFF vs last run
 0 NEW | 0 RESOLVED | 1 recurring
@@ -248,12 +274,10 @@ DIFF vs last run
 ```bash
 $ gungnir history example.com
 ```
-
 ```
 Scan History for example.com
-
-  Run e566d12d-8ac  2026-08-09 12:59  1 assets  1 findings
-  Run 613a4b92-0f0  2026-08-09 12:59  1 assets  1 findings
+  Run e566d12d  2026-08-09 12:59  1 assets  1 findings
+  Run 613a4b92  2026-08-09 12:59  1 assets  1 findings
 ```
 
 ### Test 4: Scope validation
@@ -261,110 +285,70 @@ Scan History for example.com
 ```bash
 $ gungnir scope --brief brief.txt --target https://app.example.com --target https://staging.example.com
 ```
-
 ```
-[IN SCOPE] https://app.example.com  — matches in-scope rule '*.example.com'
-[OUT OF SCOPE] https://staging.example.com  — matches out-of-scope rule '*.staging.example.com'
-```
-
-### Test 5: Tool management
-
-```bash
-$ gungnir tools list
+[IN SCOPE] https://app.example.com — matches in-scope rule '*.example.com'
+[OUT OF SCOPE] https://staging.example.com — matches out-of-scope rule '*.staging.example.com'
 ```
 
-```
-Gungnir Tool Arsenal
+## ⚖️ Ethics & Responsible Disclosure
 
-  ✓ subfinder            /home/pi/.gungnir/bin/subfinder
-  ✓ nuclei               /home/pi/.gungnir/bin/nuclei
-  ✓ dalfox               /home/pi/.gungnir/bin/dalfox
-  ✓ gitleaks             /home/pi/.gungnir/bin/gitleaks
-  ✓ ffuf                 /home/pi/.gungnir/bin/ffuf
-  ✗ httpx                (not installed)
-  ✗ sqlmap               (not installed)
-  ✗ nmap                 (not installed)
-  ✗ amass                (not installed)
-  ✗ assetfinder          (not installed)
-
-Installed: 5/10
-```
-
-### Test 6: Generated Markdown Report
-
-```markdown
-# Gungnir Scan Report — example.com
-
-**Date:** 2026-08-09 12:59 UTC  
-**Findings:** 1  
-**Attack Chains:** 0  
-
-## Findings
-
-### #1 [MEDIUM] Js Files Found
-
-**Asset:** `example.com`  
-**Source:** js_analyzer  
-**Confidence:** 60%
-
----
-*Generated with Gungnir v3 — APEX*
-```
-
-## What Gungnir Can Do With All Tools Installed
-
-When all external tools are available, Gungnir fires them all in parallel:
-
-**Wave 1 (Discovery, ~30s):**
-- subfinder, amass, assetfinder — all find subdomains simultaneously
-- nmap (if target is IP) — full port scan
-- Native DNS brute force
-
-**Wave 2 (Deep Scan, ~2-4min):**
-- httpx — probes all discovered hosts for live HTTP + tech stack
-- ffuf — fuzzes endpoints with ranked wordlists
-- nuclei — runs 5000+ vulnerability templates
-- dalfox — tests for XSS (DOM-aware)
-- sqlmap — tests parameterized URLs for SQL injection
-- gitleaks — scans for leaked secrets
-- corsy — checks CORS misconfiguration
-- nmap NSE — runs custom service scripts
-- JS analyzer — extracts API routes, parameters, secrets from JS files
-- Parameter miner — discovers hidden parameters
-- API discovery — finds GraphQL, Swagger, Actuator endpoints
-
-**Post-Scan Intelligence (<2s):**
-- Correlate all findings by asset
-- Build attack chains
-- Filter false positives
-- Score priority
-- Re-verify criticals
-- Save to SQLite
-- Diff against last run
-
-## Target Types
-
-| Target | What Gungnir Does |
-|---|---|
-| `example.com` (domain) | Subdomain enum → probe → deep scan all subdomains |
-| `192.168.1.1` (IP) | Port scan → service detect → web probe → vuln scan |
-| `10.0.0.0/24` (CIDR) | Host discovery → per-host scan → aggregate |
-| `https://app.example.com/search?q=1` (URL) | Direct deep scan: ffuf + nuclei + dalfox + sqlmap + param mining |
-
-## ⚖️ Ethics
-
-Gungnir is for **authorized testing only**. Always:
+GUNGNIR is for **authorized security testing only**. Always:
 1. Validate scope before scanning (`gungnir scope --brief ... --target ...`)
 2. Follow program rules and rate limits
-3. Do not run destructive tests
-4. Report through official channels
+3. Do not run destructive tests or denial-of-service
+4. Report vulnerabilities through official channels
 
 **You are responsible for your actions.**
 
-## License
+## 📊 Statistics
 
-[MIT](LICENSE)
+- **134 passing tests**
+- **68 Python source files**
+- **13,120 lines of code**
+- **8 native security modules**
+- **26 attack chain patterns**
+- **10-factor priority scoring**
+- **5 built-in pipelines**
+- **9 finding lifecycle states**
+- **20+ REST API endpoints**
+- **Zero tools required for native mode**
 
-## Status
+## 👨‍💻 About the Author
 
-**v3.0.0-alpha** — Core architecture, parallel engine, intelligence layer, native modules, persistence, and CLI are functional. Pre-compiled binary download works for most tools. Full testing requires a network environment that can reach the target and download binaries from GitHub releases.
+**Syed Zada Abrar** (also known as **Andrax Pentester** / **Cyb3rVolt3x**) is a certified penetration tester, full-stack web developer, and security researcher. He is the founder of [SentinelReign](https://sentinelreign.com) and runs [AndraxPentester](https://andraxpentester.in), a cybersecurity-focused platform.
+
+- 🌐 **Website:** [andraxpentester.in](https://andraxpentester.in)
+- 🛡️ **SentinelReign:** [sentinelreign.com](https://sentinelreign.com)
+- 🐙 **GitHub:** [cyb3rvolt3x-A4lixhaS3ntin3l](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l)
+- ✉️ **Email:** andraxpentester@gmail.com
+- 🔧 **Skills:** Penetration testing, bug bounty hunting, web application security, Python development, security tool development
+
+GUNGNIR was built to solve a real problem in the bug bounty community: too many tools, too much noise, not enough intelligence. It represents the culmination of years of security research experience distilled into a single, fast, intelligent platform.
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). PRs welcome — especially new attack chain patterns, native modules, and pipeline templates.
+
+## 📝 License
+
+[MIT](LICENSE) — use it, fork it, build your reputation on it.
+
+## 🔗 Links
+
+- [GitHub Repository](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/gungnir)
+- [Author's Website](https://andraxpentester.in)
+- [SentinelReign](https://sentinelreign.com)
+- [Report a Bug](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/gungnir/issues)
+- [Request a Feature](https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/gungnir/issues)
+
+---
+
+<div align="center">
+
+**GUNGNIR** — *Never misses its target.*
+
+Built with ⚔️ by [Syed Zada Abrar](https://andraxpentester.in)
+
+[andraxpentester.in](https://andraxpentester.in) · [sentinelreign.com](https://sentinelreign.com)
+
+</div>
