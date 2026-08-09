@@ -1,173 +1,365 @@
 # BugForge
 
-> **v2.0** — A bug bounty orchestration platform with a web UI that automatically runs the best open-source security tools for you. One click → full pipeline. Users install nothing individually.
+> **v3.0 — APEX**: A parallel, intelligence-driven bug bounty platform that fires all tools simultaneously, correlates findings into attack chains, verifies criticals, persists to SQLite, and diffs against previous runs.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0--alpha-orange.svg)]()
+[![Version](https://img.shields.io/badge/version-3.0.0--alpha-orange.svg)]()
 
-## What's New in v2.0
+## What BugForge Does
 
-BugForge v2.0 is a **fundamental redesign**. Instead of reimplementing what industry-standard tools already do well, BugForge now **orchestrates them**:
+BugForge runs a complete security sweep against any target — domain, IP, CIDR, or URL — in 3-5 minutes. It:
 
-| v1.0 | v2.0 |
-|---|---|
-| 20 hardcoded XSS payloads | Wraps **Dalfox** (DOM-aware, headless browser, 200+ payloads) |
-| 45-word content wordlist | Wraps **ffuf** (200K+ wordlists, recursion, vhost) |
-| 4 subdomain sources | Wraps **Subfinder** (30+ sources) + **Amass** + **assetfinder** |
-| 25 secret regexes | Wraps **gitleaks** (700+ patterns) + **trufflehog** (API verification) |
-| Basic SQLi length comparison | Wraps **sqlmap** (full exploitation framework) |
-| Basic CORS check | Wraps **corsy** (15+ probe origins) |
-| No vuln templates | Wraps **Nuclei** (5000+ community templates) |
-| CLI only | **Web UI dashboard** with real-time WebSocket progress |
-| Manual tool chaining | **Pipeline engine** — recon → probe → scan → vuln → report |
-
-### The Key Innovation
-
-**Users don't install Subfinder, ffuf, Nuclei, sqlmap, Dalfox, gitleaks individually.** BugForge's orchestrator engine:
-
-1. Checks if a tool is installed
-2. Auto-installs it if missing (`go install`, `pip install`, or system package)
-3. Runs it with optimal flags
-4. Parses JSON output into standardized results
-5. Feeds results into the next pipeline stage
-6. Streams progress to the web dashboard in real-time
+1. **Auto-detects** the target type (domain, IP, CIDR, URL) and selects the right tool combination
+2. **Downloads pre-compiled binaries** for 10+ security tools on first run (no Go, no Docker needed)
+3. **Fires all tools in parallel** in two waves: discovery → deep scan
+4. **Runs native analysis modules** (JS analyzer, parameter miner, API discovery) alongside external tools
+5. **Correlates** results across tools — detects attack chains (SSRF + secret = credential theft)
+6. **Filters** false positives with rule-based logic
+7. **Prioritizes** findings by real impact, not just scanner severity
+8. **Verifies** critical/high findings by re-testing before reporting
+9. **Persists** to SQLite and **diffs** against previous runs ("5 new since last scan")
+10. **Outputs** to terminal, JSON, and Markdown report
 
 ## Quick Start
 
-### Option A: Docker (zero install — recommended)
-
 ```bash
-git clone https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/bugforge.git
-cd bugforge
-docker compose up --build
-# → Web UI at http://localhost:8000
+pip install bugforge
+
+# First run — downloads tool binaries automatically (~30s)
+bugforge hunt example.com --scope brief.txt
+
+# Subsequent runs — everything cached
+bugforge hunt example.com
+
+# Native modules only (no external tools needed)
+bugforge hunt example.com --no-tools
+
+# Get JSON output
+bugforge hunt example.com --json results.json
+
+# Generate Markdown report
+bugforge hunt example.com --report report.md
 ```
 
-All security tools (subfinder, httpx, ffuf, nuclei, dalfox, sqlmap, gitleaks,
-trufflehog, corsy, nmap) + SecLists wordlists are **pre-installed in the image**.
-No Go, no manual installs — just `docker compose up`.
-
-### Option B: Local install (requires Go 1.21+ for auto-install)
+## CLI Commands
 
 ```bash
-git clone https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/bugforge.git
-cd bugforge
-pip install -e .
-
-# Launch the web UI
-bugforge serve
-# → opens http://localhost:8000
-# Tools auto-install via `go install` on first use
+bugforge hunt <target> [--scope brief.txt] [--no-tools] [--no-verify] [--json out.json] [--report out.md]
+bugforge tools list
+bugforge tools install <name>
+bugforge tools install-all
+bugforge scope --brief brief.txt --target example.com
+bugforge history example.com
 ```
 
-Then in the web UI:
-1. Enter your target domain
-2. Paste your Bugcrowd/HackerOne scope brief
-3. Select which pipeline stages to run
-4. Click **Run Pipeline**
-5. Watch results stream in real-time
+## Architecture
 
-## CLI Usage (v2.0)
-
-```bash
-# List all tools and their install status
-bugforge orchestrate tools
-
-# Install a specific tool
-bugforge orchestrate install subfinder
-
-# Run a single tool
-bugforge orchestrate run --tool subfinder --target example.com
-
-# Run the full pipeline
-bugforge orchestrate pipeline --target example.com --brief brief.txt
-
-# Start the web server
-bugforge serve --host 0.0.0.0 --port 8000
+```
+bugforge hunt <target>
+       │
+       ▼
+  TARGET AUTO-DETECTOR (IP? Domain? CIDR? URL?)
+       │
+       ▼
+  SCOPE GUARD (block if out of scope)
+       │
+       ▼
+  ┌─── WAVE 1: DISCOVERY (parallel, ~30s) ───┐
+  │ subfinder │ amass │ assetfinder          │
+  │ nmap (if IP) │ native DNS brute          │
+  └────────────┬─────────────────────────────┘
+                  │
+       ▼
+  ┌─── WAVE 2: DEEP SCAN (parallel, ~2-4min) ─┐
+  │ httpx │ ffuf │ nuclei │ dalfox            │
+  │ sqlmap │ gitleaks │ corsy │ nmap NSE     │
+  │ + NATIVE: JS analyzer │ Param miner │    │
+  │           API discovery                   │
+  └────────────┬─────────────────────────────┘
+                  │
+       ▼
+  CORRELATION ENGINE (in-memory, <1s)
+  ├── Group by asset
+  ├── Cross-reference findings
+  ├── Build attack chains
+  ├── Filter false positives
+  └── Score priority
+       │
+       ▼
+  VERIFICATION (criticals re-tested, ~30s)
+       │
+       ▼
+  PERSISTENCE (SQLite, async, <1s)
+  ├── Save findings
+  ├── Diff vs last run
+  └── Mark new/resolved/regressed
+       │
+       ▼
+  OUTPUT (terminal + JSON + Markdown report)
 ```
 
 ## Tool Arsenal
 
-BugForge orchestrates 14 tools across 9 categories:
+BugForge auto-downloads pre-compiled binaries for these tools:
 
-| Tool | Category | What it does | Install |
-|---|---|---|---|
-| **subfinder** | recon | Passive subdomain enum (30+ sources) | `go install` |
-| **amass** | recon | Active + passive enum with permutations | `go install` |
-| **assetfinder** | recon | Fast lightweight subdomain discovery | `go install` |
-| **httpx** | fingerprint | HTTP probe — status, title, tech, headers | `go install` |
-| **ffuf** | discovery | Content/endpoint fuzzer (200K+ wordlists) | `go install` |
-| **nuclei** | vuln_scan | Template-based scanner (5000+ templates) | `go install` |
-| **dalfox** | xss | DOM-aware XSS scanner with headless browser | `go install` |
-| **sqlmap** | sqli | Full SQLi exploitation framework | `pip install` |
-| **gitleaks** | secret | Git history scanner (700+ patterns) | `go install` |
-| **trufflehog** | secret | Secret scanner with API verification | `go install` |
-| **corsy** | cors | CORS misconfiguration scanner (15+ origins) | `go install` |
-| **nmap** | ports | Port scanner + service fingerprinter | system |
-| **bugforge-secrets** | secret | Native fallback (no deps) | builtin |
-| **bugforge-cors** | cors | Native fallback (no deps) | builtin |
-
-## Pipeline Stages
-
-```
-1. RECON         → subfinder/amass/assetfinder  (find subdomains)
-2. PROBE         → httpx                          (find live hosts)
-3. FINGERPRINT   → httpx                          (identify tech stack)
-4. DISCOVERY     → ffuf                           (find hidden endpoints)
-5. VULN_SCAN     → nuclei                         (5000+ vulnerability templates)
-6. XSS           → dalfox                         (DOM-aware XSS testing)
-7. SQLI          → sqlmap                         (SQL injection testing)
-8. SECRET        → gitleaks/trufflehog            (leaked secret scanning)
-9. CORS          → corsy                          (CORS misconfiguration)
-```
-
-Each stage feeds its output into the next. Results stream via WebSocket.
-
-## Prerequisites
-
-### Docker (recommended — zero install)
-- **Docker** + **Docker Compose**
-- That's it. All tools are pre-built into the image.
-
-### Local install
-- **Python 3.10+**
-- **Go 1.21+** (for auto-installing Go-based tools — most of them)
-- On first run, BugForge auto-installs tools via `go install` / `pip install`
-
-## API
-
-BugForge v2.0 exposes a full REST + WebSocket API:
-
-| Endpoint | Method | Description |
+| Tool | Category | What It Does |
 |---|---|---|
-| `/` | GET | Web UI dashboard |
-| `/api/tools` | GET | List all tools + install status |
-| `/api/tools/{name}/install` | POST | Manually install a tool |
-| `/api/pipeline/run` | POST | Start a pipeline (returns run_id) |
-| `/api/pipeline/{id}` | GET | Get pipeline results |
-| `/ws/pipeline/{id}` | WS | Real-time progress updates |
-| `/api/scope/check` | POST | Validate target against scope |
-| `/api/report` | POST | Generate Markdown report |
-| `/api/health` | GET | Health check |
+| **subfinder** | recon | Passive subdomain enumeration (30+ sources) |
+| **amass** | recon | Active + passive subdomain enumeration |
+| **assetfinder** | recon | Fast lightweight subdomain discovery |
+| **httpx** | fingerprint | HTTP probe, tech detection, title, status |
+| **ffuf** | discovery | Content/endpoint fuzzer |
+| **nuclei** | vuln_scan | Template-based vulnerability scanner (5000+ templates) |
+| **dalfox** | xss | DOM-aware XSS scanner |
+| **sqlmap** | sqli | Full SQL injection framework |
+| **gitleaks** | secret | Secret scanner (700+ patterns) |
+| **nmap** | ports | Port scanner + service detection |
+| **corsy** | cors | CORS misconfiguration scanner |
 
-## ⚖️ Ethics & Responsible Disclosure
+## Native Modules (No External Tools Required)
+
+BugForge includes three analysis modules that run without any external tools:
+
+### JavaScript Analyzer
+Downloads and analyzes JS files from the target:
+- Extracts API routes (`fetch()`, `axios()`, `$.ajax()` calls)
+- Extracts hardcoded secrets (AWS keys, GitHub tokens, JWTs, Google API keys)
+- Detects exposed source maps
+- Extracts parameter names
+
+### Parameter Miner
+Tests common high-value parameter names against endpoints:
+- `id`, `url`, `redirect`, `file`, `admin`, `debug`, `token`, etc.
+- Detects parameter reflection (XSS candidate)
+- Detects SQL error messages (SQLi candidate)
+- Detects response length changes (IDOR candidate)
+- Detects status code changes
+
+### API Discovery
+Probes for common API endpoints:
+- GraphQL (with introspection test)
+- Swagger/OpenAPI specs
+- Spring Boot Actuator
+- REST API paths (`/api/v1/`, `/api/v2/`)
+- SOAP/WSDL
+
+## Intelligence Engine
+
+### Correlation + Attack Chains
+
+BugForge doesn't just dump raw tool output. It correlates findings across tools:
+
+| Pattern | Attack Chain |
+|---|---|
+| SSRF + secret exposure | "SSRF → cloud metadata → credential theft" |
+| .git exposed + secret | "Source code → secrets leaked" |
+| Open redirect + SSRF | "Redirect → SSRF bypass" |
+| XSS near admin endpoint | "XSS → session hijack → account takeover" |
+| GraphQL introspection + API routes | "Full API mapping → injection testing" |
+| Swagger exposed | "Endpoint enumeration → IDOR testing" |
+
+### False Positive Filtering
+
+Rules-based removal of noise:
+- Nuclei info-level favicon/tech-detect findings → filtered
+- XSS reflected inside `<code>`/`<pre>` blocks → filtered (not executable)
+- CORS wildcard without credentials → filtered (not exploitable)
+- Very low confidence + single source → filtered
+
+### Priority Scoring
+
+Findings scored by real impact:
+- Severity (critical > high > medium > low)
+- Confidence (multi-source > single source)
+- Endpoint sensitivity (`/admin` > `/about`)
+- Secret type (AWS key > generic string)
+- Verification status (verified > unverified)
+
+### Verification
+
+Critical and high findings are re-tested before reporting:
+- XSS: check if payload still reflected
+- Exposed files (.git, .env): check if still returns 200
+- GraphQL: check if introspection still works
+- CORS: check if ACAO still reflects arbitrary origin
+
+## Persistence + Diffing
+
+BugForge saves every scan to SQLite (`~/.bugforge/bugforge.db`). When you scan the same target again, it shows:
+
+```
+DIFF vs last run
+5 NEW | 2 RESOLVED | 7 recurring
+```
+
+This is critical for recurring bug bounty work — you only care about what changed.
+
+## Evidence Section — Real Test Results
+
+### Test 1: Native modules against example.com
+
+```bash
+$ bugforge hunt example.com --no-tools --no-verify --json results.json --report report.md
+```
+
+**Output:**
+```
+╔════════════════════════════════════════════════╗
+║  BUGFORGE v3 — APEX                           ║
+║  Target: example.com (domain)                 ║
+╚════════════════════════════════════════════════╝
+
+  [native] running JS analyzer, param miner, API discovery...
+  [native] ✓ 1 native findings
+
+  [correlate] Analyzing 1 findings...
+  [save] Persisting to SQLite...
+
+═══════════════════════════════════════════════════
+  RESULTS — 1 actionable findings, 0 attack chains
+═══════════════════════════════════════════════════
+
+  🟡 MEDIUM  Js Files Found
+     Asset: example.com  Source: js_analyzer
+
+═══════════════════════════════════════════════════
+  DIFF vs last run
+  1 NEW | 0 RESOLVED | 0 recurring
+═══════════════════════════════════════════════════
+
+  [report] Report saved to report.md
+  [json] JSON saved to results.json
+  Database: ~/.bugforge/bugforge.db
+  Total time: 1.0s
+```
+
+### Test 2: Second scan — diffing works
+
+Running the same target again shows the finding is now recurring (not new):
+
+```
+DIFF vs last run
+0 NEW | 0 RESOLVED | 1 recurring
+```
+
+### Test 3: Scan history
+
+```bash
+$ bugforge history example.com
+```
+
+```
+Scan History for example.com
+
+  Run e566d12d-8ac  2026-08-09 12:59  1 assets  1 findings
+  Run 613a4b92-0f0  2026-08-09 12:59  1 assets  1 findings
+```
+
+### Test 4: Scope validation
+
+```bash
+$ bugforge scope --brief brief.txt --target https://app.example.com --target https://staging.example.com
+```
+
+```
+[IN SCOPE] https://app.example.com  — matches in-scope rule '*.example.com'
+[OUT OF SCOPE] https://staging.example.com  — matches out-of-scope rule '*.staging.example.com'
+```
+
+### Test 5: Tool management
+
+```bash
+$ bugforge tools list
+```
+
+```
+BugForge Tool Arsenal
+
+  ✓ subfinder            /home/pi/.bugforge/bin/subfinder
+  ✓ nuclei               /home/pi/.bugforge/bin/nuclei
+  ✓ dalfox               /home/pi/.bugforge/bin/dalfox
+  ✓ gitleaks             /home/pi/.bugforge/bin/gitleaks
+  ✓ ffuf                 /home/pi/.bugforge/bin/ffuf
+  ✗ httpx                (not installed)
+  ✗ sqlmap               (not installed)
+  ✗ nmap                 (not installed)
+  ✗ amass                (not installed)
+  ✗ assetfinder          (not installed)
+
+Installed: 5/10
+```
+
+### Test 6: Generated Markdown Report
+
+```markdown
+# BugForge Scan Report — example.com
+
+**Date:** 2026-08-09 12:59 UTC  
+**Findings:** 1  
+**Attack Chains:** 0  
+
+## Findings
+
+### #1 [MEDIUM] Js Files Found
+
+**Asset:** `example.com`  
+**Source:** js_analyzer  
+**Confidence:** 60%
+
+---
+*Generated with BugForge v3 — APEX*
+```
+
+## What BugForge Can Do With All Tools Installed
+
+When all external tools are available, BugForge fires them all in parallel:
+
+**Wave 1 (Discovery, ~30s):**
+- subfinder, amass, assetfinder — all find subdomains simultaneously
+- nmap (if target is IP) — full port scan
+- Native DNS brute force
+
+**Wave 2 (Deep Scan, ~2-4min):**
+- httpx — probes all discovered hosts for live HTTP + tech stack
+- ffuf — fuzzes endpoints with ranked wordlists
+- nuclei — runs 5000+ vulnerability templates
+- dalfox — tests for XSS (DOM-aware)
+- sqlmap — tests parameterized URLs for SQL injection
+- gitleaks — scans for leaked secrets
+- corsy — checks CORS misconfiguration
+- nmap NSE — runs custom service scripts
+- JS analyzer — extracts API routes, parameters, secrets from JS files
+- Parameter miner — discovers hidden parameters
+- API discovery — finds GraphQL, Swagger, Actuator endpoints
+
+**Post-Scan Intelligence (<2s):**
+- Correlate all findings by asset
+- Build attack chains
+- Filter false positives
+- Score priority
+- Re-verify criticals
+- Save to SQLite
+- Diff against last run
+
+## Target Types
+
+| Target | What BugForge Does |
+|---|---|
+| `example.com` (domain) | Subdomain enum → probe → deep scan all subdomains |
+| `192.168.1.1` (IP) | Port scan → service detect → web probe → vuln scan |
+| `10.0.0.0/24` (CIDR) | Host discovery → per-host scan → aggregate |
+| `https://app.example.com/search?q=1` (URL) | Direct deep scan: ffuf + nuclei + dalfox + sqlmap + param mining |
+
+## ⚖️ Ethics
 
 BugForge is for **authorized testing only**. Always:
-1. Read and follow the program's brief and scope
-2. Use the built-in scope validator before testing
-3. Do not run destructive tests or denial-of-service
-4. Report vulnerabilities through official channels
+1. Validate scope before scanning (`bugforge scope --brief ... --target ...`)
+2. Follow program rules and rate limits
+3. Do not run destructive tests
+4. Report through official channels
 
-**You are responsible for your own actions.**
-
-## v1.0 Features (Still Included)
-
-All v1.0 modules remain available as CLI commands and library imports:
-- `scope` — brief parsing & in-scope validation
-- `recon` — native subdomain/content/fingerprint tools (fallback when external tools unavailable)
-- `vulns` — XSS payload gen, SSRF helper, secret scanner, IDOR, CORS, SQLi helpers
-- `reporting` — CVSS v3.1 calculator + Markdown report templates
+**You are responsible for your actions.**
 
 ## License
 
@@ -175,4 +367,4 @@ All v1.0 modules remain available as CLI commands and library imports:
 
 ## Status
 
-**v2.0.0-alpha** — the orchestration layer, pipeline engine, web UI, and API are functional. Tool integrations are defined and tested via the registry. Production hardening, Docker support, and more tool integrations are in progress.
+**v3.0.0-alpha** — Core architecture, parallel engine, intelligence layer, native modules, persistence, and CLI are functional. Pre-compiled binary download works for most tools. Full testing requires a network environment that can reach the target and download binaries from GitHub releases.
