@@ -1,0 +1,34 @@
+# BugForge v2.0 — Docker Compose
+# Usage:
+#   docker compose up --build
+#   → Web UI available at http://localhost:8000
+#
+# All security tools (subfinder, httpx, ffuf, nuclei, dalfox, sqlmap,
+# gitleaks, trufflehog, corsy, nmap) are pre-installed in the image.
+# Zero manual installation required.
+
+services:
+  bugforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bugforge
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Persist pipeline results and reports
+      - bugforge-data:/app/data
+      # Mount nuclei templates for persistence across rebuilds
+      - bugforge-templates:/root/nuclei-templates
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  bugforge-data:
+  bugforge-templates:

@@ -35,6 +35,21 @@ BugForge v2.0 is a **fundamental redesign**. Instead of reimplementing what indu
 
 ## Quick Start
 
+### Option A: Docker (zero install — recommended)
+
+```bash
+git clone https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/bugforge.git
+cd bugforge
+docker compose up --build
+# → Web UI at http://localhost:8000
+```
+
+All security tools (subfinder, httpx, ffuf, nuclei, dalfox, sqlmap, gitleaks,
+trufflehog, corsy, nmap) + SecLists wordlists are **pre-installed in the image**.
+No Go, no manual installs — just `docker compose up`.
+
+### Option B: Local install (requires Go 1.21+ for auto-install)
+
 ```bash
 git clone https://github.com/cyb3rvolt3x-A4lixhaS3ntin3l/bugforge.git
 cd bugforge
@@ -43,6 +58,7 @@ pip install -e .
 # Launch the web UI
 bugforge serve
 # → opens http://localhost:8000
+# Tools auto-install via `go install` on first use
 ```
 
 Then in the web UI:
@@ -110,6 +126,11 @@ Each stage feeds its output into the next. Results stream via WebSocket.
 
 ## Prerequisites
 
+### Docker (recommended — zero install)
+- **Docker** + **Docker Compose**
+- That's it. All tools are pre-built into the image.
+
+### Local install
 - **Python 3.10+**
 - **Go 1.21+** (for auto-installing Go-based tools — most of them)
 - On first run, BugForge auto-installs tools via `go install` / `pip install`

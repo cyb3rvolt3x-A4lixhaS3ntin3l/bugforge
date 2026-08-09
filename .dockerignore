@@ -1,0 +1,21 @@
+# .dockerignore — exclude files not needed in the Docker image
+# This keeps the build context small and the image lean.
+
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+build/
+dist/
+.pytest_cache/
+tests/
+docs/
+*.md.bak
+reports/
+brief.txt
+*.log
+.env
+.DS_Store
