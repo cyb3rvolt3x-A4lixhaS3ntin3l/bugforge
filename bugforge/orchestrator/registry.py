@@ -64,37 +64,7 @@ def register(tool: ToolDefinition):
 
 # ============ RECON ============
 
-@register
-@dataclass
-class _SubfinderDef(ToolDefinition):
-    name: str = "subfinder"
-    category: ToolCategory = ToolCategory.RECON
-    description: str = "Passive subdomain enumeration (30+ sources)"
-    binary: str = "subfinder"
-    install_method: InstallMethod = InstallMethod.GO
-    install_command: str = "go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest"
-    github: str = "https://github.com/projectdiscovery/subfinder"
-    timeout: int = 120
-    notes: str = "Best-in-class passive subdomain enumeration. 30+ sources."
-
-    @staticmethod
-    def run_builder(target: str, opts: Dict) -> List[str]:
-        return ["subfinder", "-d", target, "-silent", "-json", "-o", "-"]
-
-    @staticmethod
-    def json_parser(stdout: str) -> List[dict]:
-        import json
-        results = []
-        for line in stdout.strip().splitlines():
-            try:
-                data = json.loads(line)
-                if "host" in data:
-                    results.append({"subdomain": data["host"], "source": data.get("source", "")})
-            except json.JSONDecodeError:
-                continue
-        return results
-
-
+# Subfinder (passive subdomain enumeration, 30+ sources)
 register(ToolDefinition(
     name="subfinder",
     category=ToolCategory.RECON,
@@ -137,8 +107,7 @@ register(ToolDefinition(
 register(ToolDefinition(
     name="assetfinder",
     category=ToolCategory.RECON,
-    description="Fast passive subdomain discovery"
-,
+    description="Fast passive subdomain discovery",
     binary="assetfinder",
     install_method=InstallMethod.GO,
     install_command="go install github.com/tomnomnom/assetfinder@latest",
