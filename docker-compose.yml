@@ -1,4 +1,4 @@
-# BugForge v2.0 — Docker Compose
+# Gungnir v2.0 — Docker Compose
 # Usage:
 #   docker compose up --build
 #   → Web UI available at http://localhost:8000
@@ -8,20 +8,20 @@
 # Zero manual installation required.
 
 services:
-  bugforge:
+  gungnir:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bugforge
+    container_name: gungnir
     ports:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
       # Persist pipeline results and reports
-      - bugforge-data:/app/data
+      - gungnir-data:/app/data
       # Mount nuclei templates for persistence across rebuilds
-      - bugforge-templates:/root/nuclei-templates
+      - gungnir-templates:/root/nuclei-templates
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
@@ -30,5 +30,5 @@ services:
       retries: 3
 
 volumes:
-  bugforge-data:
-  bugforge-templates:
+  gungnir-data:
+  gungnir-templates:

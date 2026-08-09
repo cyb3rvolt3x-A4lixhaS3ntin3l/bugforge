@@ -1,0 +1,21 @@
+name: Quick Recon
+description: Fast 30-second sweep — just subdomain discovery, no scanning
+target_types: [domain]
+scope_required: false
+
+stages:
+  - name: recon
+    tools: [subfinder, assetfinder]
+    parallel: true
+    options:
+      subfinder:
+        timeout: 30
+
+  - name: probe
+    tools: [httpx]
+    parallel: true
+
+output:
+  json: true
+  report: false
+  terminal: true

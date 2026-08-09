@@ -1,0 +1,14 @@
+name: Subdomain Only
+description: Just subdomain enumeration, no probing or scanning
+target_types: [domain]
+scope_required: false
+
+stages:
+  - name: recon
+    tools: [subfinder, assetfinder]
+    parallel: true
+
+output:
+  json: true
+  report: false
+  terminal: true

