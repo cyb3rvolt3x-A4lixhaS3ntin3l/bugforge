@@ -66,17 +66,17 @@ bugforge hunt <target>
        │
        ▼
   ┌─── WAVE 1: DISCOVERY (parallel, ~30s) ───┐
-  │ subfinder │ amass │ assetfinder          │
-  │ nmap (if IP) │ native DNS brute          │
-  └────────────┬─────────────────────────────┘
+  │  subfinder │ amass │ assetfinder          │
+  │  nmap (if IP) │ native DNS brute          │
+  └───────────────┬──────────────────────────┘
                   │
        ▼
   ┌─── WAVE 2: DEEP SCAN (parallel, ~2-4min) ─┐
-  │ httpx │ ffuf │ nuclei │ dalfox            │
-  │ sqlmap │ gitleaks │ corsy │ nmap NSE     │
-  │ + NATIVE: JS analyzer │ Param miner │    │
+  │  httpx │ ffuf │ nuclei │ dalfox            │
+  │  sqlmap │ gitleaks │ corsy │ nmap NSE     │
+  │  + NATIVE: JS analyzer │ Param miner │    │
   │           API discovery                   │
-  └────────────┬─────────────────────────────┘
+  └───────────────┬──────────────────────────┘
                   │
        ▼
   CORRELATION ENGINE (in-memory, <1s)
@@ -205,10 +205,10 @@ $ bugforge hunt example.com --no-tools --no-verify --json results.json --report 
 
 **Output:**
 ```
-╔════════════════════════════════════════════════╗
+╔══════════════════════════════════════════════╗
 ║  BUGFORGE v3 — APEX                           ║
 ║  Target: example.com (domain)                 ║
-╚════════════════════════════════════════════════╝
+╚══════════════════════════════════════════════╝
 
   [native] running JS analyzer, param miner, API discovery...
   [native] ✓ 1 native findings
@@ -216,17 +216,17 @@ $ bugforge hunt example.com --no-tools --no-verify --json results.json --report 
   [correlate] Analyzing 1 findings...
   [save] Persisting to SQLite...
 
-═══════════════════════════════════════════════════
+══════════════════════════════════════════════════
   RESULTS — 1 actionable findings, 0 attack chains
-═══════════════════════════════════════════════════
+══════════════════════════════════════════════════
 
   🟡 MEDIUM  Js Files Found
      Asset: example.com  Source: js_analyzer
 
-═══════════════════════════════════════════════════
+══════════════════════════════════════════════════
   DIFF vs last run
   1 NEW | 0 RESOLVED | 0 recurring
-═══════════════════════════════════════════════════
+══════════════════════════════════════════════════
 
   [report] Report saved to report.md
   [json] JSON saved to results.json
